@@ -1,1 +1,7 @@
 project_id = "mlkgvlgjocvrgxwqngnf"
+
+[functions.chapa-payment]
+verify_jwt = false
+
+[functions.chapa-webhook]
+verify_jwt = false
