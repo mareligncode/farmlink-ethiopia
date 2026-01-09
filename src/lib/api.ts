@@ -208,6 +208,33 @@ export const paymentsAPI = {
     fetchAPI<{ success: boolean; data: unknown }>(`/payments/verify/${txRef}`),
 };
 
+// Upload API
+export const uploadAPI = {
+  uploadProductImages: async (files: File[]) => {
+    const token = localStorage.getItem('auth_token');
+    const formData = new FormData();
+    files.forEach(file => formData.append('images', file));
+
+    const response = await fetch(`${API_BASE_URL}/upload/products`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Upload failed');
+    return data as { success: boolean; data: { imageUrls: string[]; count: number } };
+  },
+
+  deleteProductImage: (filename: string) =>
+    fetchAPI<{ success: boolean }>(`/upload/products/${filename}`, {
+      method: 'DELETE',
+    }),
+};
+
+// Re-export API_BASE_URL for external use
+export const getApiBaseUrl = () => API_BASE_URL;
+
 // Types
 export interface User {
   id: string;

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Package, Clock, CheckCircle, Truck, XCircle, ChevronRight } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { ordersAPI } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 
@@ -24,23 +24,8 @@ const Orders: React.FC = () => {
   const { data: orders, isLoading } = useQuery({
     queryKey: ['orders', profile?.id, profile?.role],
     queryFn: async () => {
-      if (!profile) return [];
-      
-      const field = isFarmer ? 'farmer_id' : 'merchant_id';
-      const otherField = isFarmer ? 'merchant_id' : 'farmer_id';
-      
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          order_items(*, products(name_en, name_am, image_urls)),
-          other_profile:profiles!orders_${otherField}_fkey(full_name, business_name, farm_name)
-        `)
-        .eq(field, profile.id)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data;
+      const response = await ordersAPI.getAll();
+      return response.data;
     },
     enabled: !!profile,
   });
@@ -76,17 +61,19 @@ const Orders: React.FC = () => {
         ) : orders && orders.length > 0 ? (
           <div className="space-y-4">
             {orders.map((order) => {
+              const orderId = order.id || order._id || '';
               const status = statusConfig[order.status as keyof typeof statusConfig];
               const StatusIcon = status?.icon || Clock;
+              const otherProfile = isFarmer ? order.merchantId : order.farmerId;
               
               return (
-                <Link key={order.id} to={`/orders/${order.id}`}>
+                <Link key={orderId} to={`/orders/${orderId}`}>
                   <div className="bg-card rounded-2xl shadow-sm p-4 animate-slide-up">
                     <div className="flex items-start justify-between mb-3">
                       <div>
-                        <p className="font-semibold">#{order.id.slice(0, 8)}</p>
+                        <p className="font-semibold">#{orderId.slice(0, 8)}</p>
                         <p className="text-muted-foreground text-sm">
-                          {new Date(order.created_at).toLocaleDateString()}
+                          {new Date(order.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                       <div className={cn("flex items-center gap-1 px-3 py-1 rounded-full text-sm", status?.bg)}>
@@ -99,23 +86,26 @@ const Orders: React.FC = () => {
 
                     {/* Order Items Preview */}
                     <div className="flex items-center gap-2 mb-3 overflow-x-auto">
-                      {order.order_items?.slice(0, 4).map((item, i) => (
-                        <div key={i} className="w-12 h-12 rounded-lg bg-muted flex-shrink-0 overflow-hidden">
-                          {item.products?.image_urls?.[0] ? (
-                            <img 
-                              src={item.products.image_urls[0]} 
-                              alt="" 
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-xl">🌾</div>
-                          )}
-                        </div>
-                      ))}
-                      {order.order_items && order.order_items.length > 4 && (
+                      {order.items?.slice(0, 4).map((item, i) => {
+                        const product = item.productId as { imageUrls?: string[] } | undefined;
+                        return (
+                          <div key={i} className="w-12 h-12 rounded-lg bg-muted flex-shrink-0 overflow-hidden">
+                            {product?.imageUrls?.[0] ? (
+                              <img 
+                                src={product.imageUrls[0]} 
+                                alt="" 
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-xl">🌾</div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {order.items && order.items.length > 4 && (
                         <div className="w-12 h-12 rounded-lg bg-muted flex-shrink-0 flex items-center justify-center">
                           <span className="text-sm font-medium text-muted-foreground">
-                            +{order.order_items.length - 4}
+                            +{order.items.length - 4}
                           </span>
                         </div>
                       )}
@@ -127,12 +117,12 @@ const Orders: React.FC = () => {
                           {isFarmer ? (language === 'am' ? 'ገዢ' : 'Buyer') : (language === 'am' ? 'ገበሬ' : 'Farmer')}
                         </p>
                         <p className="font-medium text-sm">
-                          {order.other_profile?.business_name || order.other_profile?.farm_name || order.other_profile?.full_name}
+                          {otherProfile?.businessName || otherProfile?.farmName || otherProfile?.fullName}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-lg font-bold text-primary">
-                          {order.total_amount} ETB
+                          {order.totalAmount} ETB
                         </span>
                         <ChevronRight className="h-5 w-5 text-muted-foreground" />
                       </div>

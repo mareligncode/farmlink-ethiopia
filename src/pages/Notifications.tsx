@@ -2,7 +2,7 @@ import React from 'react';
 import { Bell, Package, ShoppingCart, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { notificationsAPI } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -23,28 +23,15 @@ const Notifications: React.FC = () => {
   const { data: notifications, isLoading } = useQuery({
     queryKey: ['notifications', profile?.id],
     queryFn: async () => {
-      if (!profile) return [];
-      
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', profile.id)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data;
+      const response = await notificationsAPI.getAll();
+      return response.data;
     },
     enabled: !!profile,
   });
 
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', notificationId);
-      
-      if (error) throw error;
+      await notificationsAPI.markAsRead(notificationId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -54,15 +41,7 @@ const Notifications: React.FC = () => {
 
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
-      if (!profile) return;
-      
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('user_id', profile.id)
-        .eq('is_read', false);
-      
-      if (error) throw error;
+      await notificationsAPI.markAllAsRead();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -70,7 +49,7 @@ const Notifications: React.FC = () => {
     },
   });
 
-  const unreadCount = notifications?.filter(n => !n.is_read).length || 0;
+  const unreadCount = notifications?.filter(n => !n.isRead).length || 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -115,16 +94,17 @@ const Notifications: React.FC = () => {
         ) : notifications && notifications.length > 0 ? (
           <div className="space-y-3">
             {notifications.map((notification) => {
+              const notifId = notification.id || notification._id || '';
               const config = typeConfig[notification.type as keyof typeof typeConfig] || typeConfig.general;
               const Icon = config.icon;
               
               return (
                 <button
-                  key={notification.id}
-                  onClick={() => !notification.is_read && markAsReadMutation.mutate(notification.id)}
+                  key={notifId}
+                  onClick={() => !notification.isRead && markAsReadMutation.mutate(notifId)}
                   className={cn(
                     "w-full text-left bg-card rounded-xl p-4 transition-all",
-                    !notification.is_read && "ring-2 ring-primary/20 bg-primary/5"
+                    !notification.isRead && "ring-2 ring-primary/20 bg-primary/5"
                   )}
                 >
                   <div className="flex gap-3">
@@ -133,18 +113,18 @@ const Notifications: React.FC = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <p className={cn("font-semibold text-sm", !notification.is_read && "text-primary")}>
-                          {language === 'am' && notification.title_am ? notification.title_am : notification.title_en}
+                        <p className={cn("font-semibold text-sm", !notification.isRead && "text-primary")}>
+                          {language === 'am' && notification.titleAm ? notification.titleAm : notification.titleEn}
                         </p>
-                        {!notification.is_read && (
+                        {!notification.isRead && (
                           <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />
                         )}
                       </div>
                       <p className="text-muted-foreground text-sm mt-1 line-clamp-2">
-                        {language === 'am' && notification.message_am ? notification.message_am : notification.message_en}
+                        {language === 'am' && notification.messageAm ? notification.messageAm : notification.messageEn}
                       </p>
                       <p className="text-muted-foreground text-xs mt-2">
-                        {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                       </p>
                     </div>
                   </div>

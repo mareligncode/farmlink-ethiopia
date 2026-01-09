@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Filter, Package, Plus, MapPin } from 'lucide-react';
+import { Search, Package, Plus, MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { productsAPI } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 
@@ -36,23 +36,12 @@ const Products: React.FC = () => {
   const { data: products, isLoading } = useQuery({
     queryKey: ['products', selectedCategory, searchQuery],
     queryFn: async () => {
-      let query = supabase
-        .from('products')
-        .select('*, profiles!products_farmer_id_fkey(full_name, farm_name, farm_location)')
-        .eq('is_available', true)
-        .order('created_at', { ascending: false });
-
-      if (selectedCategory !== 'all') {
-        query = query.eq('category', selectedCategory);
-      }
-
-      if (searchQuery.trim()) {
-        query = query.or(`name_en.ilike.%${searchQuery}%,name_am.ilike.%${searchQuery}%`);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
+      const params: { category?: string; search?: string } = {};
+      if (selectedCategory !== 'all') params.category = selectedCategory;
+      if (searchQuery.trim()) params.search = searchQuery;
+      
+      const response = await productsAPI.getAll(params);
+      return response.data;
     },
   });
 
@@ -125,13 +114,13 @@ const Products: React.FC = () => {
         ) : products && products.length > 0 ? (
           <div className="grid grid-cols-2 gap-3">
             {products.map((product) => (
-              <Link key={product.id} to={`/products/${product.id}`}>
+              <Link key={product.id || product._id} to={`/products/${product.id || product._id}`}>
                 <div className="bg-card rounded-2xl shadow-sm overflow-hidden transition-transform hover:scale-[1.02] active:scale-[0.98]">
                   <div className="aspect-square bg-muted relative">
-                    {product.image_urls && product.image_urls[0] ? (
+                    {product.imageUrls && product.imageUrls[0] ? (
                       <img 
-                        src={product.image_urls[0]} 
-                        alt={product.name_en}
+                        src={product.imageUrls[0]} 
+                        alt={product.nameEn}
                         className="w-full h-full object-cover"
                         loading="lazy"
                       />
@@ -146,12 +135,12 @@ const Products: React.FC = () => {
                   </div>
                   <div className="p-3">
                     <p className="font-semibold text-sm truncate">
-                      {language === 'am' && product.name_am ? product.name_am : product.name_en}
+                      {language === 'am' && product.nameAm ? product.nameAm : product.nameEn}
                     </p>
                     <div className="flex items-center gap-1 text-muted-foreground text-xs mt-1">
                       <MapPin className="h-3 w-3" />
                       <span className="truncate">
-                        {product.profiles?.farm_location || product.location || 'Ethiopia'}
+                        {product.farmerId?.farmLocation || product.location || 'Ethiopia'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between mt-2">

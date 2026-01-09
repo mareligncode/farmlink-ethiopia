@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { authAPI, setAuthToken, removeAuthToken, User } from '@/lib/api';
 
 interface Profile {
   id: string;
@@ -25,7 +24,6 @@ interface Profile {
 
 interface AuthContextType {
   user: User | null;
-  session: Session | null;
   profile: Profile | null;
   loading: boolean;
   signUp: (email: string, password: string, fullName: string, role: 'farmer' | 'merchant') => Promise<{ error: Error | null }>;
@@ -36,72 +34,66 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Convert API User to Profile format
+const userToProfile = (user: User): Profile => ({
+  id: user.id || user._id || '',
+  user_id: user.id || user._id || '',
+  role: user.role,
+  full_name: user.fullName,
+  phone: user.phone || null,
+  email: user.email || null,
+  avatar_url: user.avatarUrl || null,
+  farm_name: user.farmName || null,
+  farm_location: user.farmLocation || null,
+  farm_size: user.farmSize || null,
+  business_name: user.businessName || null,
+  business_type: user.businessType || null,
+  business_location: user.businessLocation || null,
+  region: user.region || null,
+  woreda: user.woreda || null,
+  language_preference: user.languagePreference || 'en',
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+});
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchCurrentUser = async () => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-
-      if (error) {
-        console.error('Error fetching profile:', error);
-        return null;
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        setLoading(false);
+        return;
       }
-      return data as Profile;
+
+      const { user } = await authAPI.getMe();
+      setUser(user);
+      setProfile(userToProfile(user));
     } catch (error) {
-      console.error('Error fetching profile:', error);
-      return null;
+      console.error('Error fetching user:', error);
+      removeAuthToken();
+      setUser(null);
+      setProfile(null);
+    } finally {
+      setLoading(false);
     }
   };
 
   const refreshProfile = async () => {
-    if (user) {
-      const profileData = await fetchProfile(user.id);
-      setProfile(profileData);
+    try {
+      const { user } = await authAPI.getMe();
+      setUser(user);
+      setProfile(userToProfile(user));
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
     }
   };
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        // Defer profile fetch with setTimeout to prevent deadlock
-        if (session?.user) {
-          setTimeout(() => {
-            fetchProfile(session.user.id).then(setProfile);
-          }, 0);
-        } else {
-          setProfile(null);
-        }
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchProfile(session.user.id).then((data) => {
-          setProfile(data);
-          setLoading(false);
-        });
-      } else {
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    fetchCurrentUser();
   }, []);
 
   const signUp = async (
@@ -110,36 +102,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     fullName: string,
     role: 'farmer' | 'merchant'
   ) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          full_name: fullName,
-          role: role,
-        },
-      },
-    });
-
-    return { error: error as Error | null };
+    try {
+      const { token, user } = await authAPI.register({ email, password, fullName, role });
+      setAuthToken(token);
+      setUser(user);
+      setProfile(userToProfile(user));
+      return { error: null };
+    } catch (error) {
+      return { error: error as Error };
+    }
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    return { error: error as Error | null };
+    try {
+      const { token, user } = await authAPI.login({ email, password });
+      setAuthToken(token);
+      setUser(user);
+      setProfile(userToProfile(user));
+      return { error: null };
+    } catch (error) {
+      return { error: error as Error };
+    }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    removeAuthToken();
     setUser(null);
-    setSession(null);
     setProfile(null);
   };
 
@@ -147,7 +135,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     <AuthContext.Provider
       value={{
         user,
-        session,
         profile,
         loading,
         signUp,
