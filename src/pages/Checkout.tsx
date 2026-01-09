@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, MapPin, CreditCard, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, MapPin, CreditCard, CheckCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { cartAPI, ordersAPI, paymentsAPI } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 
@@ -34,41 +34,34 @@ const Checkout: React.FC = () => {
   const { data: cartItems } = useQuery({
     queryKey: ['cart', profile?.id],
     queryFn: async () => {
-      if (!profile) return [];
-      
-      const { data, error } = await supabase
-        .from('cart_items')
-        .select('*, products(*, profiles!products_farmer_id_fkey(id, full_name))')
-        .eq('user_id', profile.id);
-      
-      if (error) throw error;
-      return data;
+      const response = await cartAPI.getItems();
+      return response.data;
     },
     enabled: !!profile,
   });
 
   // Group cart items by farmer
   const groupedByFarmer = cartItems?.reduce((acc, item) => {
-    const farmerId = item.products?.profiles?.id;
+    const farmerId = item.productId?.farmerId?.id || item.productId?.farmerId?._id;
     if (!farmerId) return acc;
     
     if (!acc[farmerId]) {
       acc[farmerId] = {
         farmerId,
-        farmerName: item.products?.profiles?.full_name,
+        farmerName: item.productId?.farmerId?.fullName,
         items: [],
         total: 0,
       };
     }
     
     acc[farmerId].items.push(item);
-    acc[farmerId].total += Number(item.products?.price || 0) * Number(item.quantity);
+    acc[farmerId].total += Number(item.productId?.price || 0) * Number(item.quantity);
     
     return acc;
   }, {} as Record<string, { farmerId: string; farmerName: string; items: typeof cartItems; total: number }>);
 
   const totalAmount = cartItems?.reduce((sum, item) => {
-    return sum + (Number(item.products?.price || 0) * Number(item.quantity));
+    return sum + (Number(item.productId?.price || 0) * Number(item.quantity));
   }, 0) || 0;
 
   const createOrdersMutation = useMutation({
@@ -81,52 +74,24 @@ const Checkout: React.FC = () => {
 
       // Create orders for each farmer
       for (const group of Object.values(groupedByFarmer || {})) {
-        const { data: order, error: orderError } = await supabase
-          .from('orders')
-          .insert({
-            merchant_id: profile.id,
-            farmer_id: group.farmerId,
-            total_amount: group.total,
-            delivery_address: deliveryAddress,
-            delivery_notes: deliveryNotes,
-            status: 'pending',
-            payment_status: paymentMethod === 'cod' ? 'unpaid' : 'pending',
-          })
-          .select()
-          .single();
-
-        if (orderError) throw orderError;
-        orderIds.push(order.id);
-
-        // Create order items
-        const orderItems = group.items.map(item => ({
-          order_id: order.id,
-          product_id: item.products?.id,
+        const items = group.items.map(item => ({
+          productId: item.productId?.id || item.productId?._id || '',
           quantity: item.quantity,
-          unit_price: item.products?.price,
-          total_price: Number(item.products?.price || 0) * Number(item.quantity),
+          unitPrice: item.productId?.price || 0,
+          totalPrice: Number(item.productId?.price || 0) * Number(item.quantity),
         }));
 
-        const { error: itemsError } = await supabase
-          .from('order_items')
-          .insert(orderItems);
+        const response = await ordersAPI.create({
+          farmerId: group.farmerId,
+          items,
+          totalAmount: group.total,
+          deliveryAddress,
+          deliveryNotes,
+          paymentMethod,
+        });
 
-        if (itemsError) throw itemsError;
-
-        // Create notification for farmer
-        const { error: notifError } = await supabase
-          .from('notifications')
-          .insert({
-            user_id: group.farmerId,
-            title_en: 'New Order Received!',
-            title_am: 'አዲስ ትዕዛዝ ደርሷል!',
-            message_en: `You have received a new order worth ${group.total} ETB from ${profile.full_name}`,
-            message_am: `${profile.full_name} ${group.total} ብር የሚያወጣ አዲስ ትዕዛዝ ልከዋል`,
-            type: 'order',
-            metadata: { order_id: order.id },
-          });
-
-        if (notifError) console.error('Notification error:', notifError);
+        const orderId = response.data.id || response.data._id || '';
+        orderIds.push(orderId);
       }
 
       return orderIds;
@@ -139,53 +104,29 @@ const Checkout: React.FC = () => {
     setIsProcessingPayment(true);
 
     try {
-      const txRef = `AC-${Date.now()}-${profile.id.slice(0, 8)}`;
-      const returnUrl = `${window.location.origin}/checkout?status=complete&tx_ref=${txRef}`;
+      const callbackUrl = `${window.location.origin}/checkout?status=complete&tx_ref=`;
 
-      const { data: session } = await supabase.auth.getSession();
-      
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chapa-payment`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.session?.access_token}`,
-          },
-          body: JSON.stringify({
-            amount: totalAmount,
-            email: profile.email || `${profile.id}@agriconnect.app`,
-            first_name: profile.full_name?.split(' ')[0] || 'Customer',
-            last_name: profile.full_name?.split(' ').slice(1).join(' ') || '',
-            phone_number: profile.phone || '',
-            tx_ref: txRef,
-            return_url: returnUrl,
-            order_ids: orderIds,
-          }),
-        }
-      );
+      const response = await paymentsAPI.initializeChapa({
+        orderId: orderIds[0],
+        amount: totalAmount,
+        email: profile.email || `${profile.id}@agriconnect.app`,
+        firstName: profile.full_name?.split(' ')[0] || 'Customer',
+        lastName: profile.full_name?.split(' ').slice(1).join(' ') || '',
+        callbackUrl,
+      });
 
-      const data = await response.json();
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      if (data.checkout_url) {
+      if (response.checkoutUrl) {
         // Clear cart before redirect
-        await supabase
-          .from('cart_items')
-          .delete()
-          .eq('user_id', profile.id);
-
+        await cartAPI.clear();
+        
         // Redirect to Chapa checkout
-        window.location.href = data.checkout_url;
+        window.location.href = response.checkoutUrl;
       }
-    } catch (error: any) {
-      console.error('Payment error:', error);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Payment failed';
       toast({
         title: language === 'am' ? 'ክፍያ ስህተት' : 'Payment Error',
-        description: error.message,
+        description: message,
         variant: 'destructive',
       });
       setIsProcessingPayment(false);
@@ -209,19 +150,16 @@ const Checkout: React.FC = () => {
         await initiateChapaPayment(orderIds);
       } else {
         // Cash on delivery - just clear cart and show success
-        await supabase
-          .from('cart_items')
-          .delete()
-          .eq('user_id', profile?.id);
-
+        await cartAPI.clear();
         queryClient.invalidateQueries({ queryKey: ['cart'] });
         queryClient.invalidateQueries({ queryKey: ['orders'] });
         setOrderPlaced(true);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Order failed';
       toast({
         title: t('message.error'),
-        description: error.message,
+        description: message,
         variant: 'destructive',
       });
     }
@@ -303,27 +241,30 @@ const Checkout: React.FC = () => {
             {language === 'am' ? 'የትዕዛዝ ማጠቃለያ' : 'Order Summary'}
           </h2>
           <div className="space-y-3">
-            {cartItems?.map((item) => (
-              <div key={item.id} className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <span className="text-lg">🌾</span>
-                  <div>
-                    <p className="text-sm font-medium">
-                      {language === 'am' && item.products?.name_am 
-                        ? item.products.name_am 
-                        : item.products?.name_en
-                      }
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.quantity} x {item.products?.price} ETB
-                    </p>
+            {cartItems?.map((item) => {
+              const product = item.productId;
+              return (
+                <div key={item.id || item._id} className="flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">🌾</span>
+                    <div>
+                      <p className="text-sm font-medium">
+                        {language === 'am' && product?.nameAm 
+                          ? product.nameAm 
+                          : product?.nameEn
+                        }
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.quantity} x {product?.price} ETB
+                      </p>
+                    </div>
                   </div>
+                  <span className="font-medium">
+                    {(Number(product?.price || 0) * Number(item.quantity)).toFixed(2)} ETB
+                  </span>
                 </div>
-                <span className="font-medium">
-                  {(Number(item.products?.price || 0) * Number(item.quantity)).toFixed(2)} ETB
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <div className="border-t border-border mt-4 pt-4 flex justify-between">
             <span className="font-semibold">{t('order.total')}</span>
@@ -463,18 +404,17 @@ const Checkout: React.FC = () => {
           size="lg"
           className="w-full"
           onClick={handlePlaceOrder}
-          disabled={createOrdersMutation.isPending || isProcessingPayment || !deliveryAddress.trim()}
+          disabled={createOrdersMutation.isPending || isProcessingPayment}
         >
-          {(createOrdersMutation.isPending || isProcessingPayment) ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin mr-2" />
-              {language === 'am' ? 'በሂደት ላይ...' : 'Processing...'}
-            </>
-          ) : paymentMethod === 'chapa' ? (
-            language === 'am' ? 'በቻፓ ይክፈሉ' : 'Pay with Chapa'
-          ) : (
-            language === 'am' ? 'ትዕዛዝ አስገባ' : 'Place Order'
+          {(createOrdersMutation.isPending || isProcessingPayment) && (
+            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
           )}
+          {isProcessingPayment 
+            ? (language === 'am' ? 'ወደ ክፍያ በመሄድ ላይ...' : 'Redirecting to payment...')
+            : paymentMethod === 'chapa'
+              ? (language === 'am' ? 'ክፍያ ይክፈሉ' : 'Pay Now')
+              : (language === 'am' ? 'ትዕዛዝ ያስገቡ' : 'Place Order')
+          }
         </Button>
       </div>
     </div>

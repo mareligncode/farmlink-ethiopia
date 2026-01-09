@@ -4,7 +4,7 @@ import { ArrowLeft, MapPin, User, Star, Minus, Plus, ShoppingCart, Heart } from 
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { productsAPI, cartAPI, reviewsAPI } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -26,15 +26,8 @@ const ProductDetail: React.FC = () => {
     queryKey: ['product', id],
     queryFn: async () => {
       if (!id) throw new Error('No product ID');
-      
-      const { data, error } = await supabase
-        .from('products')
-        .select('*, profiles!products_farmer_id_fkey(id, full_name, farm_name, farm_location, avatar_url)')
-        .eq('id', id)
-        .single();
-      
-      if (error) throw error;
-      return data;
+      const response = await productsAPI.getById(id);
+      return response.data;
     },
     enabled: !!id,
   });
@@ -43,15 +36,8 @@ const ProductDetail: React.FC = () => {
     queryKey: ['product-reviews', id],
     queryFn: async () => {
       if (!id) return [];
-      
-      const { data, error } = await supabase
-        .from('reviews')
-        .select('*, profiles!reviews_reviewer_id_fkey(full_name, avatar_url)')
-        .eq('product_id', id)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data;
+      const response = await reviewsAPI.getByProduct(id);
+      return response.data;
     },
     enabled: !!id,
   });
@@ -59,35 +45,7 @@ const ProductDetail: React.FC = () => {
   const addToCartMutation = useMutation({
     mutationFn: async () => {
       if (!profile || !id) throw new Error('Not authenticated');
-      
-      // Check if already in cart
-      const { data: existing } = await supabase
-        .from('cart_items')
-        .select('id, quantity')
-        .eq('user_id', profile.id)
-        .eq('product_id', id)
-        .single();
-      
-      if (existing) {
-        // Update quantity
-        const { error } = await supabase
-          .from('cart_items')
-          .update({ quantity: existing.quantity + quantity })
-          .eq('id', existing.id);
-        
-        if (error) throw error;
-      } else {
-        // Insert new
-        const { error } = await supabase
-          .from('cart_items')
-          .insert({
-            user_id: profile.id,
-            product_id: id,
-            quantity: quantity,
-          });
-        
-        if (error) throw error;
-      }
+      await cartAPI.addItem(id, quantity);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
@@ -136,9 +94,11 @@ const ProductDetail: React.FC = () => {
     );
   }
 
-  const images = product.image_urls && product.image_urls.length > 0 
-    ? product.image_urls 
+  const images = product.imageUrls && product.imageUrls.length > 0 
+    ? product.imageUrls 
     : [null];
+
+  const farmer = product.farmerId;
 
   return (
     <div className="min-h-screen bg-background pb-32">
@@ -163,7 +123,7 @@ const ProductDetail: React.FC = () => {
           {images[selectedImageIndex] ? (
             <img 
               src={images[selectedImageIndex]}
-              alt={product.name_en}
+              alt={product.nameEn}
               className="w-full h-full object-cover"
             />
           ) : (
@@ -207,7 +167,7 @@ const ProductDetail: React.FC = () => {
 
         {/* Title & Price */}
         <h1 className="text-2xl font-bold mb-1">
-          {language === 'am' && product.name_am ? product.name_am : product.name_en}
+          {language === 'am' && product.nameAm ? product.nameAm : product.nameEn}
         </h1>
         <p className="text-2xl font-bold text-primary">
           {product.price} {product.currency}
@@ -218,9 +178,9 @@ const ProductDetail: React.FC = () => {
         <div className="flex items-center gap-4 mt-4 text-sm">
           <span className={cn(
             "px-3 py-1 rounded-full",
-            product.is_available ? "bg-leaf/10 text-leaf" : "bg-destructive/10 text-destructive"
+            product.isAvailable ? "bg-leaf/10 text-leaf" : "bg-destructive/10 text-destructive"
           )}>
-            {product.is_available ? t('product.available') : t('product.outOfStock')}
+            {product.isAvailable ? t('product.available') : t('product.outOfStock')}
           </span>
           <span className="text-muted-foreground">
             {product.quantity} {product.unit} {language === 'am' ? 'ይገኛል' : 'available'}
@@ -228,20 +188,20 @@ const ProductDetail: React.FC = () => {
         </div>
 
         {/* Farmer Info */}
-        {product.profiles && (
+        {farmer && (
           <div className="bg-card rounded-2xl p-4 mt-6 flex items-center gap-4">
             <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center overflow-hidden">
-              {product.profiles.avatar_url ? (
-                <img src={product.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
+              {farmer.avatarUrl ? (
+                <img src={farmer.avatarUrl} alt="" className="w-full h-full object-cover" />
               ) : (
                 <User className="h-7 w-7 text-muted-foreground" />
               )}
             </div>
             <div className="flex-1">
-              <p className="font-semibold">{product.profiles.farm_name || product.profiles.full_name}</p>
+              <p className="font-semibold">{farmer.farmName || farmer.fullName}</p>
               <div className="flex items-center gap-1 text-muted-foreground text-sm">
                 <MapPin className="h-3 w-3" />
-                <span>{product.profiles.farm_location || 'Ethiopia'}</span>
+                <span>{farmer.farmLocation || 'Ethiopia'}</span>
               </div>
             </div>
           </div>
@@ -251,9 +211,9 @@ const ProductDetail: React.FC = () => {
         <div className="mt-6">
           <h3 className="font-semibold mb-2">{t('product.description')}</h3>
           <p className="text-muted-foreground leading-relaxed">
-            {language === 'am' && product.description_am 
-              ? product.description_am 
-              : product.description_en || (language === 'am' ? 'ምንም መግለጫ የለም' : 'No description available')
+            {language === 'am' && product.descriptionAm 
+              ? product.descriptionAm 
+              : product.descriptionEn || (language === 'am' ? 'ምንም መግለጫ የለም' : 'No description available')
             }
           </p>
         </div>
@@ -266,9 +226,9 @@ const ProductDetail: React.FC = () => {
             </h3>
             <div className="space-y-3">
               {reviews.slice(0, 3).map((review) => (
-                <div key={review.id} className="bg-card rounded-xl p-4">
+                <div key={review.id || review._id} className="bg-card rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-sm">{review.profiles?.full_name || 'User'}</span>
+                    <span className="font-medium text-sm">{review.reviewerId?.fullName || 'User'}</span>
                     <div className="flex items-center gap-1">
                       {[...Array(5)].map((_, i) => (
                         <Star 
@@ -292,7 +252,7 @@ const ProductDetail: React.FC = () => {
       </div>
 
       {/* Bottom Bar - Only for merchants */}
-      {!isFarmer && product.is_available && (
+      {!isFarmer && product.isAvailable && (
         <div className="fixed bottom-16 left-0 right-0 bg-card border-t border-border p-4 safe-area-bottom">
           <div className="flex items-center gap-4">
             {/* Quantity Selector */}

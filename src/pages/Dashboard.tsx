@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { productsAPI, ordersAPI, notificationsAPI } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 
 const Dashboard: React.FC = () => {
@@ -13,45 +13,22 @@ const Dashboard: React.FC = () => {
   const isFarmer = profile?.role === 'farmer';
 
   // Fetch user's products (for farmers) or recent products (for merchants)
-  const { data: products } = useQuery({
+  const { data: productsData } = useQuery({
     queryKey: ['dashboard-products', profile?.id],
     queryFn: async () => {
-      if (!profile) return [];
-      
-      const query = supabase
-        .from('products')
-        .select('*, profiles!products_farmer_id_fkey(full_name, farm_name)')
-        .eq('is_available', true)
-        .order('created_at', { ascending: false })
-        .limit(4);
-      
-      if (isFarmer) {
-        query.eq('farmer_id', profile.id);
-      }
-      
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
+      const params = isFarmer ? { farmerId: profile?.id } : {};
+      const response = await productsAPI.getAll(params);
+      return response.data.slice(0, 4);
     },
     enabled: !!profile,
   });
 
   // Fetch orders
-  const { data: orders } = useQuery({
+  const { data: ordersData } = useQuery({
     queryKey: ['dashboard-orders', profile?.id],
     queryFn: async () => {
-      if (!profile) return [];
-      
-      const field = isFarmer ? 'farmer_id' : 'merchant_id';
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq(field, profile.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
-      
-      if (error) throw error;
-      return data;
+      const response = await ordersAPI.getAll();
+      return response.data.slice(0, 5);
     },
     enabled: !!profile,
   });
@@ -60,16 +37,8 @@ const Dashboard: React.FC = () => {
   const { data: unreadCount } = useQuery({
     queryKey: ['unread-notifications', profile?.id],
     queryFn: async () => {
-      if (!profile) return 0;
-      
-      const { count, error } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', profile.id)
-        .eq('is_read', false);
-      
-      if (error) throw error;
-      return count || 0;
+      const response = await notificationsAPI.getUnreadCount();
+      return response.count;
     },
     enabled: !!profile,
   });
@@ -83,13 +52,13 @@ const Dashboard: React.FC = () => {
 
   const stats = isFarmer
     ? [
-        { icon: Package, label: language === 'am' ? 'ምርቶች' : 'Products', value: products?.length || 0, color: 'bg-primary/10 text-primary' },
-        { icon: ShoppingCart, label: language === 'am' ? 'ትዕዛዞች' : 'Orders', value: orders?.length || 0, color: 'bg-secondary/20 text-secondary' },
-        { icon: TrendingUp, label: language === 'am' ? 'በመጠባበቅ' : 'Pending', value: orders?.filter(o => o.status === 'pending').length || 0, color: 'bg-accent/10 text-accent' },
+        { icon: Package, label: language === 'am' ? 'ምርቶች' : 'Products', value: productsData?.length || 0, color: 'bg-primary/10 text-primary' },
+        { icon: ShoppingCart, label: language === 'am' ? 'ትዕዛዞች' : 'Orders', value: ordersData?.length || 0, color: 'bg-secondary/20 text-secondary' },
+        { icon: TrendingUp, label: language === 'am' ? 'በመጠባበቅ' : 'Pending', value: ordersData?.filter(o => o.status === 'pending').length || 0, color: 'bg-accent/10 text-accent' },
       ]
     : [
-        { icon: Package, label: language === 'am' ? 'ምርቶች' : 'Available', value: products?.length || 0, color: 'bg-primary/10 text-primary' },
-        { icon: ShoppingCart, label: language === 'am' ? 'ትዕዛዞች' : 'My Orders', value: orders?.length || 0, color: 'bg-secondary/20 text-secondary' },
+        { icon: Package, label: language === 'am' ? 'ምርቶች' : 'Available', value: productsData?.length || 0, color: 'bg-primary/10 text-primary' },
+        { icon: ShoppingCart, label: language === 'am' ? 'ትዕዛዞች' : 'My Orders', value: ordersData?.length || 0, color: 'bg-secondary/20 text-secondary' },
         { icon: Bell, label: language === 'am' ? 'ማሳወቂያዎች' : 'Alerts', value: unreadCount || 0, color: 'bg-accent/10 text-accent' },
       ];
 
@@ -166,16 +135,16 @@ const Dashboard: React.FC = () => {
             </Link>
           </div>
 
-          {products && products.length > 0 ? (
+          {productsData && productsData.length > 0 ? (
             <div className="grid grid-cols-2 gap-3">
-              {products.map((product) => (
-                <Link key={product.id} to={`/products/${product.id}`}>
+              {productsData.map((product) => (
+                <Link key={product.id || product._id} to={`/products/${product.id || product._id}`}>
                   <div className="bg-card rounded-2xl shadow-sm overflow-hidden">
                     <div className="aspect-square bg-muted relative">
-                      {product.image_urls && product.image_urls[0] ? (
+                      {product.imageUrls && product.imageUrls[0] ? (
                         <img 
-                          src={product.image_urls[0]} 
-                          alt={product.name_en}
+                          src={product.imageUrls[0]} 
+                          alt={product.nameEn}
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -183,7 +152,7 @@ const Dashboard: React.FC = () => {
                           <Package className="h-12 w-12 text-muted-foreground/50" />
                         </div>
                       )}
-                      {!product.is_available && (
+                      {!product.isAvailable && (
                         <div className="absolute inset-0 bg-foreground/50 flex items-center justify-center">
                           <span className="bg-destructive text-destructive-foreground text-xs px-2 py-1 rounded">
                             {t('product.outOfStock')}
@@ -193,7 +162,7 @@ const Dashboard: React.FC = () => {
                     </div>
                     <div className="p-3">
                       <p className="font-semibold text-sm truncate">
-                        {language === 'am' && product.name_am ? product.name_am : product.name_en}
+                        {language === 'am' && product.nameAm ? product.nameAm : product.nameEn}
                       </p>
                       <p className="text-primary font-bold">
                         {product.price} {product.currency}
@@ -230,22 +199,22 @@ const Dashboard: React.FC = () => {
             </Link>
           </div>
 
-          {orders && orders.length > 0 ? (
+          {ordersData && ordersData.length > 0 ? (
             <div className="space-y-3">
-              {orders.slice(0, 3).map((order) => (
-                <Link key={order.id} to={`/orders/${order.id}`}>
+              {ordersData.slice(0, 3).map((order) => (
+                <Link key={order.id || order._id} to={`/orders/${order.id || order._id}`}>
                   <div className="bg-card rounded-xl shadow-sm p-4 flex items-center justify-between">
                     <div>
                       <p className="font-semibold text-sm">
-                        #{order.id.slice(0, 8)}
+                        #{(order.id || order._id || '').slice(0, 8)}
                       </p>
                       <p className="text-muted-foreground text-xs">
-                        {new Date(order.created_at).toLocaleDateString()}
+                        {new Date(order.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-primary">
-                        {order.total_amount} {order.currency}
+                        {order.totalAmount} {order.currency}
                       </p>
                       <span className={`text-xs px-2 py-0.5 rounded-full ${
                         order.status === 'delivered' ? 'bg-leaf/10 text-leaf' :
