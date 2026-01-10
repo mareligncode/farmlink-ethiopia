@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, User, Star, Minus, Plus, ShoppingCart, Heart } from 'lucide-react';
+import { ArrowLeft, MapPin, User, Star, Minus, Plus, ShoppingCart, Heart, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,6 +8,7 @@ import { productsAPI, cartAPI, reviewsAPI } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import ProductReviews from '@/components/ProductReviews';
 
 const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +20,7 @@ const ProductDetail: React.FC = () => {
   
   const [quantity, setQuantity] = useState(1);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [showReviews, setShowReviews] = useState(false);
 
   const isFarmer = profile?.role === 'farmer';
 
@@ -67,6 +69,10 @@ const ProductDetail: React.FC = () => {
     ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
     : 0;
 
+  // Check if current user owns this product
+  const isOwner = product && profile && 
+    (product.farmerId?.id === profile.id || product.farmerId?._id === profile.id);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background animate-pulse">
@@ -111,9 +117,19 @@ const ProductDetail: React.FC = () => {
           >
             <ArrowLeft className="h-6 w-6" />
           </button>
-          <button className="bg-card/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
-            <Heart className="h-6 w-6" />
-          </button>
+          <div className="flex gap-2">
+            {isOwner && (
+              <button 
+                onClick={() => navigate(`/products/${id}/edit`)}
+                className="bg-card/80 backdrop-blur-sm rounded-full p-2 shadow-sm"
+              >
+                <Edit className="h-6 w-6" />
+              </button>
+            )}
+            <button className="bg-card/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
+              <Heart className="h-6 w-6" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -157,11 +173,14 @@ const ProductDetail: React.FC = () => {
             {t(`category.${product.category}`)}
           </span>
           {reviews && reviews.length > 0 && (
-            <div className="flex items-center gap-1">
+            <button 
+              onClick={() => setShowReviews(!showReviews)}
+              className="flex items-center gap-1 hover:opacity-80 transition-opacity"
+            >
               <Star className="h-4 w-4 fill-harvest text-harvest" />
               <span className="font-medium">{averageRating.toFixed(1)}</span>
               <span className="text-muted-foreground text-sm">({reviews.length})</span>
-            </div>
+            </button>
           )}
         </div>
 
@@ -187,8 +206,20 @@ const ProductDetail: React.FC = () => {
           </span>
         </div>
 
+        {/* Edit Button for Owner */}
+        {isOwner && (
+          <Button
+            variant="outline"
+            className="w-full mt-4"
+            onClick={() => navigate(`/products/${id}/edit`)}
+          >
+            <Edit className="h-4 w-4 mr-2" />
+            {language === 'am' ? 'ምርት አስተካክል' : 'Edit Product'}
+          </Button>
+        )}
+
         {/* Farmer Info */}
-        {farmer && (
+        {farmer && !isOwner && (
           <div className="bg-card rounded-2xl p-4 mt-6 flex items-center gap-4">
             <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center overflow-hidden">
               {farmer.avatarUrl ? (
@@ -218,35 +249,25 @@ const ProductDetail: React.FC = () => {
           </p>
         </div>
 
-        {/* Reviews */}
-        {reviews && reviews.length > 0 && (
+        {/* Reviews Section */}
+        {id && (
           <div className="mt-6">
-            <h3 className="font-semibold mb-3">
-              {language === 'am' ? 'ግምገማዎች' : 'Reviews'} ({reviews.length})
-            </h3>
-            <div className="space-y-3">
-              {reviews.slice(0, 3).map((review) => (
-                <div key={review.id || review._id} className="bg-card rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-sm">{review.reviewerId?.fullName || 'User'}</span>
-                    <div className="flex items-center gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <Star 
-                          key={i} 
-                          className={cn(
-                            "h-3 w-3",
-                            i < review.rating ? "fill-harvest text-harvest" : "text-muted"
-                          )} 
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  {review.comment && (
-                    <p className="text-muted-foreground text-sm">{review.comment}</p>
-                  )}
-                </div>
-              ))}
-            </div>
+            <button
+              onClick={() => setShowReviews(!showReviews)}
+              className="flex items-center justify-between w-full py-3 border-t border-border"
+            >
+              <h3 className="font-semibold">
+                {language === 'am' ? 'ግምገማዎች' : 'Reviews'} 
+                {reviews && reviews.length > 0 && ` (${reviews.length})`}
+              </h3>
+              <span className="text-primary text-sm">
+                {showReviews 
+                  ? (language === 'am' ? 'ደብቅ' : 'Hide') 
+                  : (language === 'am' ? 'ሁሉንም ይመልከቱ' : 'View All')}
+              </span>
+            </button>
+
+            {showReviews && <ProductReviews productId={id} />}
           </div>
         )}
       </div>
