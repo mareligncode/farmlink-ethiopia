@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, MapPin, Phone, Mail, Edit2, LogOut, Settings, ChevronRight, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { authAPI } from '@/lib/api';
+import { useMutation } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -16,18 +16,31 @@ const Profile: React.FC = () => {
   const { t, language, setLanguage } = useLanguage();
   const { profile, signOut, refreshProfile } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    full_name: profile?.full_name || '',
-    phone: profile?.phone || '',
-    farm_name: profile?.farm_name || '',
-    farm_location: profile?.farm_location || '',
-    business_name: profile?.business_name || '',
-    business_location: profile?.business_location || '',
-    region: profile?.region || '',
+    fullName: '',
+    phone: '',
+    farmName: '',
+    farmLocation: '',
+    businessName: '',
+    businessLocation: '',
+    region: '',
   });
+
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        fullName: profile.full_name || '',
+        phone: profile.phone || '',
+        farmName: profile.farm_name || '',
+        farmLocation: profile.farm_location || '',
+        businessName: profile.business_name || '',
+        businessLocation: profile.business_location || '',
+        region: profile.region || '',
+      });
+    }
+  }, [profile]);
 
   const isFarmer = profile?.role === 'farmer';
 
@@ -35,20 +48,22 @@ const Profile: React.FC = () => {
     mutationFn: async () => {
       if (!profile) throw new Error('Not authenticated');
 
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: formData.full_name,
-          phone: formData.phone,
-          farm_name: isFarmer ? formData.farm_name : null,
-          farm_location: isFarmer ? formData.farm_location : null,
-          business_name: !isFarmer ? formData.business_name : null,
-          business_location: !isFarmer ? formData.business_location : null,
-          region: formData.region,
-        })
-        .eq('id', profile.id);
+      const updateData: Record<string, string | undefined> = {
+        fullName: formData.fullName,
+        phone: formData.phone,
+        region: formData.region,
+      };
 
-      if (error) throw error;
+      if (isFarmer) {
+        updateData.farmName = formData.farmName;
+        updateData.farmLocation = formData.farmLocation;
+      } else {
+        updateData.businessName = formData.businessName;
+        updateData.businessLocation = formData.businessLocation;
+      }
+
+      const response = await authAPI.updateProfile(updateData);
+      return response;
     },
     onSuccess: () => {
       refreshProfile();
@@ -112,11 +127,11 @@ const Profile: React.FC = () => {
           {isEditing ? (
             <form onSubmit={(e) => { e.preventDefault(); updateProfileMutation.mutate(); }} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="full_name">{t('auth.fullName')}</Label>
+                <Label htmlFor="fullName">{t('auth.fullName')}</Label>
                 <Input
-                  id="full_name"
-                  value={formData.full_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
+                  id="fullName"
+                  value={formData.fullName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
                   className="h-12"
                 />
               </div>
@@ -135,20 +150,20 @@ const Profile: React.FC = () => {
               {isFarmer ? (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="farm_name">{t('profile.farmName')}</Label>
+                    <Label htmlFor="farmName">{t('profile.farmName')}</Label>
                     <Input
-                      id="farm_name"
-                      value={formData.farm_name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, farm_name: e.target.value }))}
+                      id="farmName"
+                      value={formData.farmName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, farmName: e.target.value }))}
                       className="h-12"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="farm_location">{t('profile.farmLocation')}</Label>
+                    <Label htmlFor="farmLocation">{t('profile.farmLocation')}</Label>
                     <Input
-                      id="farm_location"
-                      value={formData.farm_location}
-                      onChange={(e) => setFormData(prev => ({ ...prev, farm_location: e.target.value }))}
+                      id="farmLocation"
+                      value={formData.farmLocation}
+                      onChange={(e) => setFormData(prev => ({ ...prev, farmLocation: e.target.value }))}
                       className="h-12"
                     />
                   </div>
@@ -156,20 +171,20 @@ const Profile: React.FC = () => {
               ) : (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="business_name">{t('profile.businessName')}</Label>
+                    <Label htmlFor="businessName">{t('profile.businessName')}</Label>
                     <Input
-                      id="business_name"
-                      value={formData.business_name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, business_name: e.target.value }))}
+                      id="businessName"
+                      value={formData.businessName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, businessName: e.target.value }))}
                       className="h-12"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="business_location">{language === 'am' ? 'የንግድ አካባቢ' : 'Business Location'}</Label>
+                    <Label htmlFor="businessLocation">{language === 'am' ? 'የንግድ አካባቢ' : 'Business Location'}</Label>
                     <Input
-                      id="business_location"
-                      value={formData.business_location}
-                      onChange={(e) => setFormData(prev => ({ ...prev, business_location: e.target.value }))}
+                      id="businessLocation"
+                      value={formData.businessLocation}
+                      onChange={(e) => setFormData(prev => ({ ...prev, businessLocation: e.target.value }))}
                       className="h-12"
                     />
                   </div>
