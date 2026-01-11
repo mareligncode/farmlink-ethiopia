@@ -68,6 +68,27 @@ export const authAPI = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
+
+  forgotPassword: (email: string) =>
+    fetchAPI<{ success: boolean; message: string }>('/password-reset/forgot', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
+  verifyResetToken: (token: string) =>
+    fetchAPI<{ success: boolean; message: string }>(`/password-reset/verify/${token}`),
+
+  resetPassword: (token: string, password: string) =>
+    fetchAPI<{ success: boolean; message: string }>('/password-reset/reset', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+    }),
+
+  changePassword: (currentPassword: string, newPassword: string) =>
+    fetchAPI<{ success: boolean; message: string }>('/settings/change-password', {
+      method: 'PUT',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
 };
 
 // Products API
@@ -329,3 +350,58 @@ export interface Review {
   comment?: string;
   createdAt: string;
 }
+
+// Analytics API
+export const analyticsAPI = {
+  getDashboard: () =>
+    fetchAPI<{
+      success: boolean;
+      data: {
+        totalRevenue: number;
+        totalOrders: number;
+        totalProducts: number;
+        averageOrderValue: number;
+        revenueByMonth: Array<{ month: string; revenue: number }>;
+        ordersByStatus: Array<{ status: string; count: number }>;
+        topProducts: Array<{ product: Product; totalSold: number; revenue: number }>;
+        recentOrders: Order[];
+      };
+    }>('/analytics/dashboard'),
+
+  getSalesTrends: (period: 'week' | 'month' | 'year' = 'month') =>
+    fetchAPI<{
+      success: boolean;
+      data: Array<{ date: string; revenue: number; orders: number }>;
+    }>(`/analytics/sales-trends?period=${period}`),
+
+  getProductPerformance: () =>
+    fetchAPI<{
+      success: boolean;
+      data: Array<{ product: Product; views: number; sales: number; revenue: number }>;
+    }>('/analytics/product-performance'),
+};
+
+// Settings API
+export const settingsAPI = {
+  getNotificationPreferences: () =>
+    fetchAPI<{
+      success: boolean;
+      data: {
+        emailNotifications: boolean;
+        orderUpdates: boolean;
+        promotions: boolean;
+        newsletter: boolean;
+      };
+    }>('/settings/notifications'),
+
+  updateNotificationPreferences: (preferences: {
+    emailNotifications?: boolean;
+    orderUpdates?: boolean;
+    promotions?: boolean;
+    newsletter?: boolean;
+  }) =>
+    fetchAPI<{ success: boolean; message: string }>('/settings/notifications', {
+      method: 'PUT',
+      body: JSON.stringify(preferences),
+    }),
+};

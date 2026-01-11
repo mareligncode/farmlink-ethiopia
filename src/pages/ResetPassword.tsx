@@ -39,7 +39,7 @@ const ResetPassword: React.FC = () => {
       }
       try {
         const result = await authAPI.verifyResetToken(token);
-        setTokenValid(result.valid);
+        setTokenValid(result.success);
       } catch {
         setTokenValid(false);
       } finally {
