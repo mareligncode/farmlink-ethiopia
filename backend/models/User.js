@@ -41,6 +41,17 @@ const userSchema = new mongoose.Schema({
   businessName: String,
   businessLocation: String,
   businessType: String,
+  // Notification preferences
+  notificationPreferences: {
+    push: { type: Boolean, default: true },
+    email: { type: Boolean, default: true },
+    orderUpdates: { type: Boolean, default: true },
+    promotions: { type: Boolean, default: false },
+    newProducts: { type: Boolean, default: true },
+  },
+  // Password reset fields
+  resetPasswordToken: String,
+  resetPasswordExpire: Date,
   createdAt: {
     type: Date,
     default: Date.now
@@ -53,6 +64,8 @@ const userSchema = new mongoose.Schema({
 
 // Encrypt password using bcrypt
 userSchema.pre('save', async function(next) {
+  this.updatedAt = Date.now();
+  
   if (!this.isModified('password')) {
     next();
   }
