@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
 const CartItem = require('../models/Cart');
+const User = require('../models/User');
 const Notification = require('../models/Notification');
 const { protect } = require('../middleware/auth');
-
+const { sendOrderCreatedEmail, sendOrderStatusUpdateEmail } = require('../services/emailService');
 // @route   GET /api/orders
 router.get('/', protect, async (req, res) => {
   try {
