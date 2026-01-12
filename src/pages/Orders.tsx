@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Package, Clock, CheckCircle, Truck, XCircle, ChevronRight, RefreshCw } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import { Button } from '@/components/ui/button';
+import OrderFilters, { OrderFiltersState } from '@/components/orders/OrderFilters';
 
 const statusConfig = {
   pending: { icon: Clock, color: 'text-secondary', bg: 'bg-secondary/10' },
@@ -23,6 +24,13 @@ const Orders: React.FC = () => {
   const { profile } = useAuth();
   const isFarmer = profile?.role === 'farmer';
 
+  const [filters, setFilters] = useState<OrderFiltersState>({
+    search: '',
+    status: 'all',
+    dateFrom: undefined,
+    dateTo: undefined,
+  });
+
   const { data: orders, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['orders', profile?.id, profile?.role],
     queryFn: async () => {
@@ -30,11 +38,76 @@ const Orders: React.FC = () => {
       return response.data;
     },
     enabled: !!profile,
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
+    refetchInterval: 30000,
   });
 
   // Real-time polling for order updates
   useRealtimeOrders({ enabled: !!profile });
+
+  // Filter orders based on filters state
+  const filteredOrders = useMemo(() => {
+    if (!orders) return [];
+
+    return orders.filter((order) => {
+      // Status filter
+      if (filters.status !== 'all' && order.status !== filters.status) {
+        return false;
+      }
+
+      // Date range filter
+      const orderDate = new Date(order.createdAt);
+      if (filters.dateFrom) {
+        const fromDate = new Date(filters.dateFrom);
+        fromDate.setHours(0, 0, 0, 0);
+        if (orderDate < fromDate) return false;
+      }
+      if (filters.dateTo) {
+        const toDate = new Date(filters.dateTo);
+        toDate.setHours(23, 59, 59, 999);
+        if (orderDate > toDate) return false;
+      }
+
+      // Search filter
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase();
+        const orderId = (order.id || order._id || '').toLowerCase();
+        
+        // Search by order ID
+        if (orderId.includes(searchLower)) return true;
+
+        // Search by product names in items
+        if (order.items?.some((item: any) => {
+          const product = item.productId;
+          if (typeof product === 'object' && product !== null) {
+            const nameEn = (product.nameEn || '').toLowerCase();
+            const nameAm = (product.nameAm || '').toLowerCase();
+            return nameEn.includes(searchLower) || nameAm.includes(searchLower);
+          }
+          return false;
+        })) return true;
+
+        // Search by farmer/merchant name
+        const otherProfile = isFarmer ? order.merchantId : order.farmerId;
+        if (typeof otherProfile === 'object' && otherProfile !== null) {
+          const name = (otherProfile.fullName || otherProfile.businessName || otherProfile.farmName || '').toLowerCase();
+          if (name.includes(searchLower)) return true;
+        }
+
+        return false;
+      }
+
+      return true;
+    });
+  }, [orders, filters, isFarmer]);
+
+  const clearFilters = () => {
+    setFilters({
+      search: '',
+      status: 'all',
+      dateFrom: undefined,
+      dateTo: undefined,
+    });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -63,6 +136,24 @@ const Orders: React.FC = () => {
       </div>
 
       <div className="px-6 py-4">
+        {/* Filters */}
+        <div className="mb-4">
+          <OrderFilters 
+            filters={filters} 
+            onFiltersChange={setFilters} 
+            onClearFilters={clearFilters} 
+          />
+        </div>
+
+        {/* Results count */}
+        {!isLoading && orders && orders.length > 0 && (
+          <p className="text-sm text-muted-foreground mb-4">
+            {language === 'am' 
+              ? `${filteredOrders.length} ከ ${orders.length} ትዕዛዞች ይታያሉ` 
+              : `Showing ${filteredOrders.length} of ${orders.length} orders`}
+          </p>
+        )}
+
         {isLoading ? (
           <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
@@ -77,9 +168,9 @@ const Orders: React.FC = () => {
               </div>
             ))}
           </div>
-        ) : orders && orders.length > 0 ? (
+        ) : filteredOrders.length > 0 ? (
           <div className="space-y-4">
-            {orders.map((order) => {
+            {filteredOrders.map((order) => {
               const orderId = order.id || order._id || '';
               const status = statusConfig[order.status as keyof typeof statusConfig];
               const StatusIcon = status?.icon || Clock;
@@ -105,14 +196,14 @@ const Orders: React.FC = () => {
 
                     {/* Order Items Preview */}
                     <div className="flex items-center gap-2 mb-3 overflow-x-auto">
-                      {order.items?.slice(0, 4).map((item, i) => {
-                        const product = item.productId as { imageUrls?: string[] } | undefined;
+                      {order.items?.slice(0, 4).map((item: any, i: number) => {
+                        const product = item.productId as { imageUrls?: string[]; nameEn?: string } | undefined;
                         return (
                           <div key={i} className="w-12 h-12 rounded-lg bg-muted flex-shrink-0 overflow-hidden">
                             {product?.imageUrls?.[0] ? (
                               <img 
                                 src={product.imageUrls[0]} 
-                                alt="" 
+                                alt={product?.nameEn || ''} 
                                 className="w-full h-full object-cover"
                               />
                             ) : (
@@ -150,6 +241,24 @@ const Orders: React.FC = () => {
                 </Link>
               );
             })}
+          </div>
+        ) : orders && orders.length > 0 ? (
+          // No results after filtering
+          <div className="text-center py-16">
+            <div className="bg-muted rounded-full p-6 w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+              <Package className="h-12 w-12 text-muted-foreground" />
+            </div>
+            <h2 className="text-xl font-bold mb-2">
+              {language === 'am' ? 'ምንም ውጤት የለም' : 'No results found'}
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              {language === 'am' 
+                ? 'ማጣሪያዎችዎን ለማሻሻል ይሞክሩ' 
+                : 'Try adjusting your filters'}
+            </p>
+            <Button variant="outline" onClick={clearFilters}>
+              {language === 'am' ? 'ማጣሪያዎችን አጽዳ' : 'Clear Filters'}
+            </Button>
           </div>
         ) : (
           <div className="text-center py-16">

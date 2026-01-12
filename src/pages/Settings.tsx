@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, Moon, Sun, Globe, Shield, Trash2, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Bell, Moon, Sun, Globe, Shield, Trash2, ChevronRight, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +15,7 @@ const Settings: React.FC = () => {
   const navigate = useNavigate();
   const { t, language, setLanguage } = useLanguage();
   const { signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
   const { toast } = useToast();
 
   // Local state for settings (in production, these would be persisted)
@@ -25,8 +26,6 @@ const Settings: React.FC = () => {
     promotions: false,
     newProducts: true,
   });
-
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
 
   const handleDeleteAccount = async () => {
     // In production, this would call an API to delete the account
@@ -61,25 +60,49 @@ const Settings: React.FC = () => {
 
           {/* Theme */}
           <div className="p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+            <div>
+              <div className="flex items-center gap-3 mb-3">
                 {theme === 'dark' ? (
                   <Moon className="h-5 w-5 text-muted-foreground" />
+                ) : theme === 'system' ? (
+                  <Monitor className="h-5 w-5 text-muted-foreground" />
                 ) : (
                   <Sun className="h-5 w-5 text-muted-foreground" />
                 )}
                 <Label>{language === 'am' ? 'ገጽታ' : 'Theme'}</Label>
               </div>
-              <Select value={theme} onValueChange={(v: 'light' | 'dark' | 'system') => setTheme(v)}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="light">{language === 'am' ? 'ብርሃን' : 'Light'}</SelectItem>
-                  <SelectItem value="dark">{language === 'am' ? 'ጨለማ' : 'Dark'}</SelectItem>
-                  <SelectItem value="system">{language === 'am' ? 'ስርዓት' : 'System'}</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex bg-muted rounded-lg p-1">
+                <button
+                  onClick={() => setTheme('light')}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded text-sm font-medium transition-all",
+                    theme === 'light' ? "bg-card shadow-sm" : "text-muted-foreground"
+                  )}
+                >
+                  <Sun className="h-4 w-4" />
+                  {language === 'am' ? 'ብርሃን' : 'Light'}
+                </button>
+                <button
+                  onClick={() => setTheme('dark')}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded text-sm font-medium transition-all",
+                    theme === 'dark' ? "bg-card shadow-sm" : "text-muted-foreground"
+                  )}
+                >
+                  <Moon className="h-4 w-4" />
+                  {language === 'am' ? 'ጨለማ' : 'Dark'}
+                </button>
+                <button
+                  onClick={() => setTheme('system')}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded text-sm font-medium transition-all",
+                    theme === 'system' ? "bg-card shadow-sm" : "text-muted-foreground"
+                  )}
+                >
+                  <Monitor className="h-4 w-4" />
+                  {language === 'am' ? 'ስርዓት' : 'System'}
+                </button>
+              </div>
             </div>
 
             {/* Language */}
