@@ -590,7 +590,7 @@ export const uploadAPI = {
 export const getApiBaseUrl = () => API_BASE_URL;
 
 ////////////////////////////////////////////////////
-// ADDITION: Analytics API
+// Analytics Types
 ////////////////////////////////////////////////////
 
 export interface SalesTrend {
@@ -608,17 +608,6 @@ export interface RevenueStats {
   month: string;
   totalRevenue: number;
 }
-
-export const analyticsAPI = {
-  getSalesTrends: () =>
-    fetchAPI<{ success: boolean; data: SalesTrend[] }>('/analytics/sales-trends'),
-
-  getPopularProducts: () =>
-    fetchAPI<{ success: boolean; data: ProductStats[] }>('/analytics/popular-products'),
-
-  getRevenueStats: () =>
-    fetchAPI<{ success: boolean; data: RevenueStats[] }>('/analytics/revenue'),
-};
 
 ////////////////////////////////////////////////////
 // Types (existing as-is)
