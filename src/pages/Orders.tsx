@@ -1,11 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Package, Clock, CheckCircle, Truck, XCircle, ChevronRight } from 'lucide-react';
+import { Package, Clock, CheckCircle, Truck, XCircle, ChevronRight, RefreshCw } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { ordersAPI } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
+import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
+import { Button } from '@/components/ui/button';
 
 const statusConfig = {
   pending: { icon: Clock, color: 'text-secondary', bg: 'bg-secondary/10' },
@@ -21,26 +23,43 @@ const Orders: React.FC = () => {
   const { profile } = useAuth();
   const isFarmer = profile?.role === 'farmer';
 
-  const { data: orders, isLoading } = useQuery({
+  const { data: orders, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['orders', profile?.id, profile?.role],
     queryFn: async () => {
       const response = await ordersAPI.getAll();
       return response.data;
     },
     enabled: !!profile,
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
+
+  // Real-time polling for order updates
+  useRealtimeOrders({ enabled: !!profile });
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="bg-card border-b border-border px-6 py-4 safe-area-top">
-        <h1 className="text-2xl font-bold">{t('nav.orders')}</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          {isFarmer 
-            ? (language === 'am' ? 'ከገዢዎች የተቀበሉ ትዕዛዞች' : 'Orders received from buyers')
-            : (language === 'am' ? 'እርስዎ ያስቀመጡ ትዕዛዞች' : 'Orders you have placed')
-          }
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">{t('nav.orders')}</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              {isFarmer 
+                ? (language === 'am' ? 'ከገዢዎች የተቀበሉ ትዕዛዞች' : 'Orders received from buyers')
+                : (language === 'am' ? 'እርስዎ ያስቀመጡ ትዕዛዞች' : 'Orders you have placed')
+              }
+            </p>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => refetch()} 
+            disabled={isRefetching}
+            className="shrink-0"
+          >
+            <RefreshCw className={cn("h-5 w-5", isRefetching && "animate-spin")} />
+          </Button>
+        </div>
       </div>
 
       <div className="px-6 py-4">

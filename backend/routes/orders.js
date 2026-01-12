@@ -67,7 +67,15 @@ router.post('/', protect, async (req, res) => {
     // Clear cart
     await CartItem.deleteMany({ userId: req.user.id });
 
-    // Notify farmer
+    // Get farmer and merchant details for email
+    const farmer = await User.findById(farmerId);
+    const merchant = await User.findById(req.user.id);
+
+    // Populate order for email
+    const populatedOrder = await Order.findById(order._id)
+      .populate('items.productId', 'nameEn nameAm price');
+
+    // Notify farmer via in-app notification
     await Notification.create({
       userId: farmerId,
       type: 'order',
@@ -77,6 +85,13 @@ router.post('/', protect, async (req, res) => {
       messageAm: `${totalAmount} ብር የሚያወጣ አዲስ ትዕዛዝ ደርሷል`,
       metadata: { orderId: order._id }
     });
+
+    // Send email notification to farmer (async, don't wait)
+    if (farmer && farmer.email && farmer.notificationPreferences?.email !== false) {
+      sendOrderCreatedEmail(populatedOrder, farmer, merchant).catch(err => {
+        console.error('Failed to send order created email:', err.message);
+      });
+    }
 
     res.status(201).json({ success: true, data: order });
   } catch (err) {
@@ -89,7 +104,8 @@ router.put('/:id/status', protect, async (req, res) => {
   try {
     const { status } = req.body;
     
-    const order = await Order.findById(req.params.id);
+    const order = await Order.findById(req.params.id)
+      .populate('items.productId', 'nameEn nameAm price');
 
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
@@ -102,7 +118,10 @@ router.put('/:id/status', protect, async (req, res) => {
     order.status = status;
     await order.save();
 
-    // Notify merchant
+    // Get merchant details for email
+    const merchant = await User.findById(order.merchantId);
+
+    // Notify merchant via in-app notification
     await Notification.create({
       userId: order.merchantId,
       type: 'order',
@@ -112,6 +131,13 @@ router.put('/:id/status', protect, async (req, res) => {
       messageAm: `የትዕዛዝዎ ሁኔታ ተዘምኗል: ${status}`,
       metadata: { orderId: order._id }
     });
+
+    // Send email notification to merchant (async, don't wait)
+    if (merchant && merchant.email && merchant.notificationPreferences?.email !== false) {
+      sendOrderStatusUpdateEmail(order, merchant, status).catch(err => {
+        console.error('Failed to send order status update email:', err.message);
+      });
+    }
 
     res.json({ success: true, data: order });
   } catch (err) {
