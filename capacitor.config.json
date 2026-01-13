@@ -1,9 +1,9 @@
-// {
-//   "appId": "app.lovable.cd347f84dfb74f36bd98ce9f29c114bb",
-//   "appName": "AgriConnect",
-//   "webDir": "dist",
-//   "server": {
-//     "url": "https://cd347f84-dfb7-4f36-bd98-ce9f29c114bb.lovableproject.com?forceHideBadge=true",
-//     "cleartext": true
-//   }
-// }
+{
+  "appId": "app.lovable.cd347f84dfb74f36bd98ce9f29c114bb",
+  "appName": "AgriConnect",
+  "webDir": "dist",
+  "server": {
+    "url": "https://cd347f84-dfb7-4f36-bd98-ce9f29c114bb.lovableproject.com?forceHideBadge=true",
+    "cleartext": true
+  }
+}
