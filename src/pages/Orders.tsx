@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import { Button } from '@/components/ui/button';
 import OrderFilters, { OrderFiltersState } from '@/components/orders/OrderFilters';
+import ExportOrdersButton from '@/components/orders/ExportOrdersButton';
 
 const statusConfig = {
   pending: { icon: Clock, color: 'text-secondary', bg: 'bg-secondary/10' },
@@ -123,15 +124,22 @@ const Orders: React.FC = () => {
               }
             </p>
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => refetch()} 
-            disabled={isRefetching}
-            className="shrink-0"
-          >
-            <RefreshCw className={cn("h-5 w-5", isRefetching && "animate-spin")} />
-          </Button>
+          <div className="flex items-center gap-2">
+            <ExportOrdersButton 
+              orders={filteredOrders} 
+              isFarmer={isFarmer} 
+              disabled={isLoading}
+            />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => refetch()} 
+              disabled={isRefetching}
+              className="shrink-0"
+            >
+              <RefreshCw className={cn("h-5 w-5", isRefetching && "animate-spin")} />
+            </Button>
+          </div>
         </div>
       </div>
 

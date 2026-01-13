@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import ChangePasswordDialog from '@/components/settings/ChangePasswordDialog';
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ const Settings: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
 
-  // Local state for settings (in production, these would be persisted)
+  // Local state for settings
   const [notifications, setNotifications] = useState({
     push: true,
     email: true,
@@ -26,6 +27,7 @@ const Settings: React.FC = () => {
     promotions: false,
     newProducts: true,
   });
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   const handleDeleteAccount = async () => {
     // In production, this would call an API to delete the account
@@ -223,7 +225,7 @@ const Settings: React.FC = () => {
 
           <div className="divide-y divide-border">
             <button
-              onClick={() => toast({ description: language === 'am' ? 'በቅርቡ ይመጣል' : 'Coming soon' })}
+              onClick={() => setChangePasswordOpen(true)}
               className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
             >
               <span>{language === 'am' ? 'የይለፍ ቃል ቀይር' : 'Change Password'}</span>
@@ -309,6 +311,12 @@ const Settings: React.FC = () => {
           <p>{language === 'am' ? 'በፍቅር ተሰርቷል 🌱' : 'Made with love 🌱'}</p>
         </div>
       </div>
+
+      {/* Change Password Dialog */}
+      <ChangePasswordDialog 
+        open={changePasswordOpen} 
+        onOpenChange={setChangePasswordOpen} 
+      />
     </div>
   );
 };
