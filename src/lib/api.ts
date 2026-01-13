@@ -1,7 +1,5 @@
 
 
-// API Configuration for External Backend
-// Update this URL when you deploy your backend
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Get auth token from localStorage
@@ -258,9 +256,7 @@ export const uploadAPI = {
 // Re-export API_BASE_URL for external use
 export const getApiBaseUrl = () => API_BASE_URL;
 
-////////////////////////////////////////////////////
-// ADDITION: Analytics API
-////////////////////////////////////////////////////
+
 
 export interface SalesTrend {
   date: string;
@@ -277,21 +273,6 @@ export interface RevenueStats {
   month: string;
   totalRevenue: number;
 }
-
-// export const analyticsAPI = {
-//   getSalesTrends: () =>
-//     fetchAPI<{ success: boolean; data: SalesTrend[] }>('/analytics/sales-trends'),
-
-//   getPopularProducts: () =>
-//     fetchAPI<{ success: boolean; data: ProductStats[] }>('/analytics/popular-products'),
-
-//   getRevenueStats: () =>
-//     fetchAPI<{ success: boolean; data: RevenueStats[] }>('/analytics/revenue'),
-// };
-
-////////////////////////////////////////////////////
-// Types (existing as-is)
-////////////////////////////////////////////////////
 
 export interface User {
   id: string;

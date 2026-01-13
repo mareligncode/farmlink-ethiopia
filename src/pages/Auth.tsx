@@ -302,6 +302,19 @@ const Auth: React.FC = () => {
             >
               {loading ? t('action.loading') : (isLogin ? t('auth.login') : t('auth.signup'))}
             </Button>
+
+            {/* Forgot Password Link - Login only */}
+            {isLogin && (
+              <div className="text-center mt-4">
+                <button
+                  type="button"
+                  onClick={() => navigate('/forgot-password')}
+                  className="text-sm text-primary hover:underline"
+                >
+                  {language === 'am' ? 'የይለፍ ቃልዎን ረስተዋል?' : 'Forgot your password?'}
+                </button>
+              </div>
+            )}
           </form>
         </div>
 
