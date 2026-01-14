@@ -1,17 +1,10 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-// Create reusable transporter
-const createTransporter = () => {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT) || 587,
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-};
+// Initialize Resend with API key
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Default from email (use onboarding@resend.dev for testing, or your verified domain for production)
+const FROM_EMAIL = process.env.EMAIL_FROM || 'AgriConnect <onboarding@resend.dev>';
 
 // Email templates
 const templates = {
@@ -228,21 +221,31 @@ const templates = {
   }),
 };
 
-// Send email function
+// Send email function using Resend
 const sendEmail = async (to, template, data) => {
   try {
-    const transporter = createTransporter();
-    const { subject, html } = templates[template](data.order || data.user, data.recipient || data.user, data.status || data.resetUrl, data.language);
+    // Check if API key is configured
+    if (!process.env.RESEND_API_KEY) {
+      console.warn('RESEND_API_KEY not configured. Email not sent.');
+      return { success: false, error: 'Email service not configured' };
+    }
 
-    const info = await transporter.sendMail({
-      from: `"AgriConnect" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
-      to,
-      subject,
-      html,
+    const templateData = templates[template](
+      data.order || data.user, 
+      data.recipient || data.user, 
+      data.status || data.resetUrl, 
+      data.language
+    );
+
+    const response = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: [to],
+      subject: templateData.subject,
+      html: templateData.html,
     });
 
-    console.log('Email sent:', info.messageId);
-    return { success: true, messageId: info.messageId };
+    console.log('Email sent successfully:', response);
+    return { success: true, data: response };
   } catch (error) {
     console.error('Email send error:', error);
     return { success: false, error: error.message };
@@ -251,29 +254,30 @@ const sendEmail = async (to, template, data) => {
 
 // Specific email functions
 const sendOrderCreatedEmail = async (order, farmer, merchant) => {
-  // Send to farmer
   if (farmer.email && farmer.notificationPreferences?.email !== false) {
-    await sendEmail(farmer.email, 'orderCreated', {
+    return await sendEmail(farmer.email, 'orderCreated', {
       order,
       recipient: { name: farmer.fullName },
       language: farmer.languagePreference || 'en',
     });
   }
+  return { success: false, error: 'No email address or notifications disabled' };
 };
 
 const sendOrderStatusUpdateEmail = async (order, merchant, newStatus) => {
   if (merchant.email && merchant.notificationPreferences?.orderUpdates !== false) {
-    await sendEmail(merchant.email, 'orderStatusUpdate', {
+    return await sendEmail(merchant.email, 'orderStatusUpdate', {
       order,
       recipient: { name: merchant.fullName },
       status: newStatus,
       language: merchant.languagePreference || 'en',
     });
   }
+  return { success: false, error: 'No email address or notifications disabled' };
 };
 
 const sendPasswordResetEmail = async (user, resetUrl) => {
-  await sendEmail(user.email, 'passwordReset', {
+  return await sendEmail(user.email, 'passwordReset', {
     user,
     resetUrl,
     language: user.languagePreference || 'en',
@@ -281,7 +285,7 @@ const sendPasswordResetEmail = async (user, resetUrl) => {
 };
 
 const sendWelcomeEmail = async (user) => {
-  await sendEmail(user.email, 'welcome', {
+  return await sendEmail(user.email, 'welcome', {
     user,
     language: user.languagePreference || 'en',
   });
