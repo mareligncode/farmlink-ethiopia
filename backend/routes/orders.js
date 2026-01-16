@@ -5,7 +5,8 @@ const CartItem = require('../models/Cart');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const { protect } = require('../middleware/auth');
-const { sendOrderCreatedEmail, sendOrderStatusUpdateEmail } = require('../services/emailService');
+const { sendOrderCreatedEmail, sendOrderConfirmationEmail, sendOrderStatusUpdateEmail } = require('../services/emailService');
+
 // @route   GET /api/orders
 router.get('/', protect, async (req, res) => {
   try {
@@ -89,7 +90,14 @@ router.post('/', protect, async (req, res) => {
     // Send email notification to farmer (async, don't wait)
     if (farmer && farmer.email && farmer.notificationPreferences?.email !== false) {
       sendOrderCreatedEmail(populatedOrder, farmer, merchant).catch(err => {
-        console.error('Failed to send order created email:', err.message);
+        console.error('Failed to send order created email to farmer:', err.message);
+      });
+    }
+
+    // Send order confirmation email to merchant/buyer (async, don't wait)
+    if (merchant && merchant.email && merchant.notificationPreferences?.email !== false) {
+      sendOrderConfirmationEmail(populatedOrder, merchant, farmer).catch(err => {
+        console.error('Failed to send order confirmation email to merchant:', err.message);
       });
     }
 
