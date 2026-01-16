@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 const userSchema = new mongoose.Schema({
   email: {
@@ -31,6 +32,13 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: 'en'
   },
+  // Email verification fields
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  emailVerificationToken: String,
+  emailVerificationExpire: Date,
   // Farmer specific fields
   farmName: String,
   farmLocation: String,
@@ -83,6 +91,20 @@ userSchema.methods.getSignedJwtToken = function() {
 // Match user entered password to hashed password in database
 userSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
+};
+
+// Generate email verification token
+userSchema.methods.getEmailVerificationToken = function() {
+  const verificationToken = crypto.randomBytes(32).toString('hex');
+  
+  this.emailVerificationToken = crypto
+    .createHash('sha256')
+    .update(verificationToken)
+    .digest('hex');
+  
+  this.emailVerificationExpire = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+  
+  return verificationToken;
 };
 
 module.exports = mongoose.model('User', userSchema);

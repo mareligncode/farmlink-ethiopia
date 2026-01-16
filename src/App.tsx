@@ -12,6 +12,7 @@ import Onboarding from "./pages/Onboarding";
 import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import VerifyEmail from "./pages/VerifyEmail";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
@@ -44,6 +45,7 @@ const App = () => (
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password/:token" element={<ResetPassword />} />
+                <Route path="/verify-email" element={<VerifyEmail />} />
                 <Route element={<AppLayout />}>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/products" element={<Products />} />

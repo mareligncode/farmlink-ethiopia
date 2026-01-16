@@ -33,6 +33,8 @@ const Auth: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'farmer' | 'merchant'>('merchant');
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
   
   const [formData, setFormData] = useState({
     email: '',
@@ -66,11 +68,17 @@ const Auth: React.FC = () => {
         const { error } = await signIn(validated.email, validated.password);
         
         if (error) {
-          toast({
-            title: t('message.error'),
-            description: error.message,
-            variant: 'destructive',
-          });
+          // Check if it's a verification required error
+          if (error.message.includes('verify your email')) {
+            setVerificationEmail(validated.email);
+            setShowVerificationMessage(true);
+          } else {
+            toast({
+              title: t('message.error'),
+              description: error.message,
+              variant: 'destructive',
+            });
+          }
         } else {
           toast({
             title: t('message.success'),
@@ -82,16 +90,21 @@ const Auth: React.FC = () => {
         const { error } = await signUp(validated.email, validated.password, validated.fullName, selectedRole);
         
         if (error) {
-          toast({
-            title: t('message.error'),
-            description: error.message,
-            variant: 'destructive',
-          });
+          // Check if registration was successful but requires verification
+          if (error.message.includes('check your email') || error.message.includes('verify')) {
+            setVerificationEmail(validated.email);
+            setShowVerificationMessage(true);
+          } else {
+            toast({
+              title: t('message.error'),
+              description: error.message,
+              variant: 'destructive',
+            });
+          }
         } else {
-          toast({
-            title: t('message.success'),
-            description: 'Account created successfully!',
-          });
+          // Registration successful, show verification message
+          setVerificationEmail(validated.email);
+          setShowVerificationMessage(true);
         }
       }
     } catch (error) {
@@ -108,6 +121,76 @@ const Auth: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const handleResendVerification = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/resend-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: verificationEmail }),
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: language === 'am' ? 'ተልኳል!' : 'Sent!',
+          description: language === 'am' ? 'የማረጋገጫ ኢሜል ተልኳል።' : 'Verification email has been sent.',
+        });
+      } else {
+        toast({
+          title: t('message.error'),
+          description: data.error,
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: t('message.error'),
+        description: 'Failed to send verification email',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Show verification message screen
+  if (showVerificationMessage) {
+    return (
+      <div className="min-h-screen bg-gradient-surface flex flex-col items-center justify-center p-6">
+        <div className="bg-card rounded-2xl shadow-lg p-8 max-w-md w-full text-center animate-slide-up">
+          <div className="rounded-full bg-primary/10 p-4 w-fit mx-auto mb-4">
+            <Mail className="h-12 w-12 text-primary" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground mb-2">
+            {language === 'am' ? 'ኢሜልዎን ያረጋግጡ' : 'Check Your Email'}
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            {language === 'am' 
+              ? `የማረጋገጫ ኢሜል ወደ ${verificationEmail} ተልኳል። እባክዎ ኢሜልዎን ይፈትሹ እና በውስጡ ያለውን ሊንክ ይጫኑ።`
+              : `We've sent a verification email to ${verificationEmail}. Please check your inbox and click the link to verify your account.`}
+          </p>
+          <div className="space-y-3">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleResendVerification}
+            >
+              {language === 'am' ? 'ማረጋገጫ እንደገና ላክ' : 'Resend Verification Email'}
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => {
+                setShowVerificationMessage(false);
+                setIsLogin(true);
+              }}
+            >
+              {language === 'am' ? 'ወደ መግቢያ ተመለስ' : 'Back to Login'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-surface flex flex-col">
