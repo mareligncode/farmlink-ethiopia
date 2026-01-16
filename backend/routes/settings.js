@@ -3,9 +3,7 @@ const router = express.Router();
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 
-// @route   PUT /api/settings/change-password
-// @desc    Change user password
-// @access  Private
+
 router.put('/change-password', protect, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
