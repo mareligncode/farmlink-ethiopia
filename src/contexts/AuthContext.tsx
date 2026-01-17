@@ -110,7 +110,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return { error: new Error('Please check your email to verify your account.') };
       }
       // If no verification required, set the token and user
-      if (response.token) {
+      if (response.token && response.user) {
         setAuthToken(response.token);
         setUser(response.user);
         setProfile(userToProfile(response.user));
