@@ -128,15 +128,15 @@ const VerifyEmail: React.FC = () => {
             </h2>
             <p className="text-muted-foreground">
               {language === 'am' 
-                ? 'አካውንትዎ በተሳካ ሁኔታ ተረጋግጧል። አሁን መግባት ይችላሉ።'
-                : 'Your account has been verified successfully. You can now log in.'}
+                ? 'አካውንትዎ በተሳካ ሁኔታ ተረጋግጧል።'
+                : 'Your account has been verified successfully.'}
             </p>
             <Button
               variant="hero"
               className="w-full mt-4"
-              onClick={() => navigate('/auth')}
+              onClick={() => navigate('/dashboard')}
             >
-              {language === 'am' ? 'ወደ መግቢያ ሂድ' : 'Go to Login'}
+              {language === 'am' ? 'ወደ ዳሽቦርድ ሂድ' : 'Go to Dashboard'}
             </Button>
           </div>
         )}

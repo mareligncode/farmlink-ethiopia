@@ -90,7 +90,7 @@ const Auth: React.FC = () => {
         const { error } = await signUp(validated.email, validated.password, validated.fullName, selectedRole);
         
         if (error) {
-          // Check if registration was successful but requires verification
+          // Check if this is the expected "verify email" message (success case)
           if (error.message.includes('check your email') || error.message.includes('verify')) {
             setVerificationEmail(validated.email);
             setShowVerificationMessage(true);
@@ -102,9 +102,11 @@ const Auth: React.FC = () => {
             });
           }
         } else {
-          // Registration successful, show verification message
-          setVerificationEmail(validated.email);
-          setShowVerificationMessage(true);
+          // Registration successful without verification - go to dashboard
+          toast({
+            title: t('message.success'),
+            description: 'Account created successfully!',
+          });
         }
       }
     } catch (error) {
