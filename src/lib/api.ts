@@ -50,7 +50,7 @@ async function fetchAPI<T>(
 // Auth API
 export const authAPI = {
   register: (data: { email: string; password: string; fullName: string; role: string }) =>
-    fetchAPI<{ success: boolean; token: string; user: User }>('/auth/register', {
+    fetchAPI<{ success: boolean; token?: string; user?: User; requiresVerification?: boolean; message?: string }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     }),

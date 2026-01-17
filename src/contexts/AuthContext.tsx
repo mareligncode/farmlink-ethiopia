@@ -103,10 +103,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     role: 'farmer' | 'merchant'
   ) => {
     try {
-      const { token, user } = await authAPI.register({ email, password, fullName, role });
-      setAuthToken(token);
-      setUser(user);
-      setProfile(userToProfile(user));
+      const response = await authAPI.register({ email, password, fullName, role });
+      // If email verification is required, don't set user/token yet
+      if (response.requiresVerification) {
+        // Return success but with a message indicating verification is needed
+        return { error: new Error('Please check your email to verify your account.') };
+      }
+      // If no verification required, set the token and user
+      if (response.token) {
+        setAuthToken(response.token);
+        setUser(response.user);
+        setProfile(userToProfile(response.user));
+      }
       return { error: null };
     } catch (error) {
       return { error: error as Error };
