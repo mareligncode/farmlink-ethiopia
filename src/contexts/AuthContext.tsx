@@ -104,12 +104,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   ) => {
     try {
       const response = await authAPI.register({ email, password, fullName, role });
-      // If email verification is required, don't set user/token yet
-      if (response.requiresVerification) {
-        // Return success but with a message indicating verification is needed
-        return { error: new Error('Please check your email to verify your account.') };
-      }
-      // If no verification required, set the token and user
       if (response.token && response.user) {
         setAuthToken(response.token);
         setUser(response.user);
