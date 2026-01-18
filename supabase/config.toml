@@ -5,3 +5,12 @@ verify_jwt = false
 
 [functions.chapa-webhook]
 verify_jwt = false
+
+[functions.ai-chat]
+verify_jwt = false
+
+[functions.ai-generate-description]
+verify_jwt = false
+
+[functions.ai-recommendations]
+verify_jwt = false

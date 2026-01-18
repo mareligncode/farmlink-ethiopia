@@ -13,6 +13,7 @@ import { productsAPI, uploadAPI } from '@/lib/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
+import AIDescriptionGenerator from '@/components/ai/AIDescriptionGenerator';
 
 type ProductCategory = 'grains' | 'vegetables' | 'fruits' | 'legumes' | 'spices' | 'coffee' | 'oilseeds' | 'livestock' | 'dairy' | 'honey' | 'other';
 
@@ -358,12 +359,25 @@ const AddProduct: React.FC = () => {
 
         {/* Description */}
         <div className="space-y-2">
-          <Label htmlFor="descriptionEn">{t('product.description')} (English)</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="descriptionEn">{t('product.description')}</Label>
+            <AIDescriptionGenerator
+              productName={formData.nameEn}
+              category={formData.category}
+              onGenerated={(en, am) => {
+                setFormData(prev => ({
+                  ...prev,
+                  descriptionEn: en,
+                  descriptionAm: am,
+                }));
+              }}
+            />
+          </div>
           <Textarea
             id="descriptionEn"
             value={formData.descriptionEn}
             onChange={(e) => setFormData(prev => ({ ...prev, descriptionEn: e.target.value }))}
-            placeholder="Describe your product..."
+            placeholder="Describe your product... (English)"
             rows={3}
           />
         </div>

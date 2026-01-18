@@ -6,6 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { productsAPI, ordersAPI, notificationsAPI } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
+import AIRecommendations from '@/components/ai/AIRecommendations';
 
 const Dashboard: React.FC = () => {
   const { t, language } = useLanguage();
@@ -101,6 +102,13 @@ const Dashboard: React.FC = () => {
 
       {/* Content */}
       <div className="px-6 -mt-8">
+        {/* AI Recommendations for Merchants */}
+        {!isFarmer && (
+          <div className="mb-6 animate-slide-up">
+            <AIRecommendations />
+          </div>
+        )}
+
         {/* Quick Actions */}
         {isFarmer && (
           <Link to="/products/add">
