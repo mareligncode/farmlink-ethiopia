@@ -8,6 +8,7 @@ import { productsAPI, ordersAPI, notificationsAPI } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import AIRecommendations from '@/components/ai/AIRecommendations';
 import AICropDiseaseDetector from '@/components/ai/AICropDiseaseDetector';
+import AIMarketTrends from '@/components/ai/AIMarketTrends';
 const Dashboard: React.FC = () => {
   const { t, language } = useLanguage();
   const { profile } = useAuth();
@@ -113,6 +114,13 @@ const Dashboard: React.FC = () => {
         {isFarmer && (
           <div className="mb-6 animate-slide-up">
             <AICropDiseaseDetector />
+          </div>
+        )}
+
+        {/* AI Market Trends for Farmers */}
+        {isFarmer && (
+          <div className="mb-6 animate-slide-up" style={{ animationDelay: '0.05s' }}>
+            <AIMarketTrends />
           </div>
         )}
 

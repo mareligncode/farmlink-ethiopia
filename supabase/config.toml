@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.ai-crop-disease]
 verify_jwt = false
+
+[functions.ai-price-suggestion]
+verify_jwt = false
+
+[functions.ai-market-trends]
+verify_jwt = false

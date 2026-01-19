@@ -14,6 +14,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import AIDescriptionGenerator from '@/components/ai/AIDescriptionGenerator';
+import AIPriceSuggestion from '@/components/ai/AIPriceSuggestion';
 
 type ProductCategory = 'grains' | 'vegetables' | 'fruits' | 'legumes' | 'spices' | 'coffee' | 'oilseeds' | 'livestock' | 'dairy' | 'honey' | 'other';
 
@@ -344,6 +345,14 @@ const AddProduct: React.FC = () => {
             </SelectContent>
           </Select>
         </div>
+
+        {/* AI Price Suggestion */}
+        <AIPriceSuggestion
+          productName={formData.nameEn}
+          category={formData.category}
+          unit={formData.unit}
+          quantity={parseFloat(formData.quantity) || 1}
+        />
 
         {/* Location */}
         <div className="space-y-2">
