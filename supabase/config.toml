@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.ai-recommendations]
 verify_jwt = false
+
+[functions.ai-crop-disease]
+verify_jwt = false
