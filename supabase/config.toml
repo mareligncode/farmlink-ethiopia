@@ -23,3 +23,9 @@ verify_jwt = false
 
 [functions.ai-market-trends]
 verify_jwt = false
+
+[functions.elevenlabs-scribe-token]
+verify_jwt = false
+
+[functions.ai-weather-advice]
+verify_jwt = false

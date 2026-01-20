@@ -1,12 +1,14 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Upload, Camera, Leaf, Send, X, Image as ImageIcon } from "lucide-react";
+import { Loader2, Upload, Camera, Leaf, Send, X, Image as ImageIcon, Mic, MicOff, Square } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useScribe, CommitStrategy } from "@elevenlabs/react";
 
 const DISEASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-crop-disease`;
+const TOKEN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-scribe-token`;
 
 export const AICropDiseaseDetector = () => {
   const [symptoms, setSymptoms] = useState("");
@@ -14,9 +16,109 @@ export const AICropDiseaseDetector = () => {
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [diagnosis, setDiagnosis] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { language } = useLanguage();
+
+  // ElevenLabs Scribe for voice input
+  const scribe = useScribe({
+    modelId: "scribe_v2_realtime",
+    commitStrategy: CommitStrategy.VAD,
+    onPartialTranscript: (data) => {
+      // Update symptoms with partial transcript in real-time
+      if (data.text) {
+        setSymptoms(prev => {
+          // Replace partial text or append
+          const baseText = prev.replace(/\[...\]$/, '').trim();
+          return baseText ? `${baseText} ${data.text} [...]` : `${data.text} [...]`;
+        });
+      }
+    },
+    onCommittedTranscript: (data) => {
+      // Finalize the transcript
+      if (data.text) {
+        setSymptoms(prev => {
+          const baseText = prev.replace(/\[...\]$/, '').replace(/ \[...\]/, '').trim();
+          const newText = data.text.trim();
+          return baseText ? `${baseText} ${newText}` : newText;
+        });
+      }
+    },
+  });
+
+  const startVoiceInput = useCallback(async () => {
+    setIsConnecting(true);
+    try {
+      // Request microphone permission first
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // Get token from edge function
+      const response = await fetch(TOKEN_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get voice token");
+      }
+
+      const data = await response.json();
+      
+      if (!data.token) {
+        throw new Error("No token received");
+      }
+
+      // Start the scribe session
+      await scribe.connect({
+        token: data.token,
+        microphone: {
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      });
+
+      setIsRecording(true);
+      toast({
+        title: language === "am" ? "ድምጽ መቅረጽ ተጀምሯል" : "Recording started",
+        description: language === "am" 
+          ? "በአማርኛ ወይም በእንግሊዝኛ ይናገሩ" 
+          : "Speak in Amharic or English",
+      });
+    } catch (error) {
+      console.error("Voice input error:", error);
+      toast({
+        title: language === "am" ? "ስህተት" : "Error",
+        description: language === "am" 
+          ? "ማይክሮፎን መጠቀም አልተቻለም" 
+          : "Could not access microphone",
+        variant: "destructive",
+      });
+    } finally {
+      setIsConnecting(false);
+    }
+  }, [scribe, language, toast]);
+
+  const stopVoiceInput = useCallback(async () => {
+    try {
+      await scribe.disconnect();
+      setIsRecording(false);
+      // Clean up the [...] placeholder
+      setSymptoms(prev => prev.replace(/ \[...\]/, '').replace(/\[...\]/, '').trim());
+      toast({
+        title: language === "am" ? "ድምጽ መቅረጽ ተጠናቋል" : "Recording stopped",
+        description: language === "am" 
+          ? "ድምጽዎ በጽሁፍ ተቀይሯል" 
+          : "Your voice has been transcribed",
+      });
+    } catch (error) {
+      console.error("Stop voice error:", error);
+    }
+  }, [scribe, language, toast]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -73,7 +175,7 @@ export const AICropDiseaseDetector = () => {
         body: JSON.stringify({
           symptoms: symptoms.trim(),
           imageBase64: imageBase64,
-          language: "am", // Always use Amharic for this feature
+          language: language, // Use current app language
         }),
       });
 
@@ -117,16 +219,54 @@ export const AICropDiseaseDetector = () => {
         </CardTitle>
         <p className="text-sm text-muted-foreground">
           {language === "am" 
-            ? "የሰብልዎን ምልክት ይግለጹ ወይም ፎቶ ያስገቡ" 
-            : "Describe symptoms or upload a photo of your crop"}
+            ? "ምልክት ይግለጹ፣ በድምጽ ይናገሩ ወይም ፎቶ ያስገቡ" 
+            : "Describe symptoms, speak, or upload a photo"}
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Symptoms Input */}
+        {/* Symptoms Input with Voice */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">
-            {language === "am" ? "የበሽታ ምልክት ይግለጹ" : "Describe the symptoms"}
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">
+              {language === "am" ? "የበሽታ ምልክት ይግለጹ" : "Describe the symptoms"}
+            </label>
+            {/* Voice Input Button */}
+            <Button
+              size="sm"
+              variant={isRecording ? "destructive" : "outline"}
+              onClick={isRecording ? stopVoiceInput : startVoiceInput}
+              disabled={isLoading || isConnecting}
+              className="gap-1"
+            >
+              {isConnecting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {language === "am" ? "እየተገናኘ..." : "Connecting..."}
+                </>
+              ) : isRecording ? (
+                <>
+                  <Square className="h-4 w-4" />
+                  {language === "am" ? "አቁም" : "Stop"}
+                </>
+              ) : (
+                <>
+                  <Mic className="h-4 w-4" />
+                  {language === "am" ? "በድምጽ" : "Voice"}
+                </>
+              )}
+            </Button>
+          </div>
+          
+          {/* Recording Indicator */}
+          {isRecording && (
+            <div className="flex items-center gap-2 p-2 bg-destructive/10 rounded-lg animate-pulse">
+              <MicOff className="h-4 w-4 text-destructive" />
+              <span className="text-sm text-destructive">
+                {language === "am" ? "እየተቀረጸ ነው... ይናገሩ" : "Recording... Speak now"}
+              </span>
+            </div>
+          )}
+          
           <Textarea
             placeholder={language === "am" 
               ? "ምሳሌ: የቲማቲሜ ቅጠሎች ቢጫ እየሆኑ ነው፣ ጫፋቸው እየደረቀ ነው..." 
@@ -134,7 +274,7 @@ export const AICropDiseaseDetector = () => {
             value={symptoms}
             onChange={(e) => setSymptoms(e.target.value)}
             className="min-h-[100px] resize-none"
-            disabled={isLoading}
+            disabled={isLoading || isRecording}
           />
         </div>
 
@@ -192,7 +332,7 @@ export const AICropDiseaseDetector = () => {
         <div className="flex gap-2">
           <Button
             onClick={analyzeCrop}
-            disabled={isLoading || (!symptoms.trim() && !imageBase64)}
+            disabled={isLoading || isRecording || (!symptoms.trim() && !imageBase64)}
             className="flex-1"
           >
             {isLoading ? (
@@ -208,7 +348,7 @@ export const AICropDiseaseDetector = () => {
             )}
           </Button>
           {(symptoms || imagePreview || diagnosis) && (
-            <Button variant="outline" onClick={clearAll} disabled={isLoading}>
+            <Button variant="outline" onClick={clearAll} disabled={isLoading || isRecording}>
               {language === "am" ? "አጽዳ" : "Clear"}
             </Button>
           )}
@@ -246,7 +386,7 @@ export const AICropDiseaseDetector = () => {
                 variant="outline"
                 className="text-xs h-7"
                 onClick={() => setSymptoms((prev) => prev ? `${prev}, ${symptom}` : symptom)}
-                disabled={isLoading}
+                disabled={isLoading || isRecording}
               >
                 {symptom}
               </Button>
