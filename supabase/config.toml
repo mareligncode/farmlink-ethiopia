@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.ai-weather-advice]
 verify_jwt = false
+
+[functions.elevenlabs-tts]
+verify_jwt = false
