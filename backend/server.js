@@ -10,7 +10,25 @@ connectDB();
 
 const app = express();
 
+<<<<<<< HEAD
 app.use(cors());
+=======
+// Middleware - Allow all origins for development with ngrok
+app.use(cors({
+  origin: function(origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    // Allow all origins in development
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning']
+}));
+
+// Handle preflight requests
+app.options('*', cors());
+>>>>>>> 5978b1153867005e8152ccb3675812b718b991e2
 app.use(express.json());
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
