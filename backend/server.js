@@ -10,9 +10,7 @@ connectDB();
 
 const app = express();
 
-<<<<<<< HEAD
 app.use(cors());
-=======
 // Middleware - Allow all origins for development with ngrok
 app.use(cors({
   origin: function(origin, callback) {
@@ -28,7 +26,6 @@ app.use(cors({
 
 // Handle preflight requests
 app.options('*', cors());
->>>>>>> 5978b1153867005e8152ccb3675812b718b991e2
 app.use(express.json());
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
