@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import AIDescriptionGenerator from '@/components/ai/AIDescriptionGenerator';
 import AIPriceSuggestion from '@/components/ai/AIPriceSuggestion';
+import AIQualityGrade from '@/components/ai/AIQualityGrade';
 
 type ProductCategory = 'grains' | 'vegetables' | 'fruits' | 'legumes' | 'spices' | 'coffee' | 'oilseeds' | 'livestock' | 'dairy' | 'honey' | 'other';
 
@@ -345,6 +346,22 @@ const AddProduct: React.FC = () => {
             </SelectContent>
           </Select>
         </div>
+
+        {/* AI Quality Grade - only show if images uploaded */}
+        {images.length > 0 && (
+          <AIQualityGrade
+            imageUrl={images[0]}
+            category={formData.category}
+            productName={formData.nameEn}
+            onGradeDetected={(grade, multiplier) => {
+              // Optionally adjust price based on grade
+              toast({
+                title: language === 'am' ? 'ደረጃ ተገኝቷል' : 'Grade Detected',
+                description: `${grade} (${(multiplier * 100).toFixed(0)}% ${language === 'am' ? 'የዋጋ ማስተካከያ' : 'price adjustment'})`,
+              });
+            }}
+          />
+        )}
 
         {/* AI Price Suggestion */}
         <AIPriceSuggestion
