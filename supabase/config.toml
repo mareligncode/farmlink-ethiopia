@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.elevenlabs-tts]
 verify_jwt = false
+
+[functions.ai-quality-grade]
+verify_jwt = false

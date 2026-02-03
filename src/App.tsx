@@ -8,6 +8,8 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import AppLayout from "@/components/layout/AppLayout";
 import AIAssistant from "@/components/ai/AIAssistant";
+import OfflineIndicator from "@/components/pwa/OfflineIndicator";
+import InstallPrompt from "@/components/pwa/InstallPrompt";
 import Splash from "./pages/Splash";
 import Onboarding from "./pages/Onboarding";
 import Auth from "./pages/Auth";
@@ -40,6 +42,7 @@ const App = () => (
           <TooltipProvider>
             <Toaster />
             <Sonner />
+            <OfflineIndicator />
             <BrowserRouter>
               <Routes>
                 <Route path="/" element={<Splash />} />
@@ -66,6 +69,7 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <AIAssistant />
+              <InstallPrompt />
             </BrowserRouter>
           </TooltipProvider>
         </AuthProvider>
