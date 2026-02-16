@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, Moon, Sun, Globe, Shield, Trash2, ChevronRight, Monitor } from 'lucide-react';
+import { ArrowLeft, Bell, Moon, Sun, Globe, Shield, Trash2, ChevronRight, Monitor, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -10,7 +10,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { settingsAPI } from '@/lib/api';
 import ChangePasswordDialog from '@/components/settings/ChangePasswordDialog';
+import PrivacyPolicyDialog from '@/components/settings/PrivacyPolicyDialog';
+import TermsOfServiceDialog from '@/components/settings/TermsOfServiceDialog';
+import TwoFactorDialog from '@/components/settings/TwoFactorDialog';
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
@@ -19,7 +23,6 @@ const Settings: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
 
-  // Local state for settings
   const [notifications, setNotifications] = useState({
     push: true,
     email: true,
@@ -27,10 +30,59 @@ const Settings: React.FC = () => {
     promotions: false,
     newProducts: true,
   });
+  const [savingNotifications, setSavingNotifications] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [privacyPolicyOpen, setPrivacyPolicyOpen] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [twoFactorOpen, setTwoFactorOpen] = useState(false);
+
+  // Load notification preferences
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const res = await settingsAPI.getNotificationPreferences();
+        if (res.success && res.data) {
+          setNotifications({
+            push: true,
+            email: res.data.emailNotifications ?? true,
+            orderUpdates: res.data.orderUpdates ?? true,
+            promotions: res.data.promotions ?? false,
+            newProducts: res.data.newsletter ?? true,
+          });
+        }
+      } catch {
+        // Use defaults if API fails
+      }
+    };
+    loadPreferences();
+  }, []);
+
+  const handleNotificationChange = async (key: string, checked: boolean) => {
+    const updated = { ...notifications, [key]: checked };
+    setNotifications(updated);
+
+    setSavingNotifications(true);
+    try {
+      await settingsAPI.updateNotificationPreferences({
+        emailNotifications: updated.email,
+        orderUpdates: updated.orderUpdates,
+        promotions: updated.promotions,
+        newsletter: updated.newProducts,
+      });
+    } catch {
+      toast({
+        title: language === 'am' ? 'ስህተት' : 'Error',
+        description: language === 'am' ? 'ማሳወቂያ ምርጫዎችን ማዘመን አልተቻለም' : 'Failed to update notification preferences',
+        variant: 'destructive',
+      });
+      // Revert
+      setNotifications(prev => ({ ...prev, [key]: !checked }));
+    } finally {
+      setSavingNotifications(false);
+    }
+  };
 
   const handleDeleteAccount = async () => {
-    // In production, this would call an API to delete the account
     toast({
       title: language === 'am' ? 'መለያ ተሰርዟል' : 'Account Deleted',
       description: language === 'am' ? 'መለያዎ በተሳካ ሁኔታ ተሰርዟል' : 'Your account has been successfully deleted',
@@ -60,7 +112,6 @@ const Settings: React.FC = () => {
             </h2>
           </div>
 
-          {/* Theme */}
           <div className="p-4 space-y-4">
             <div>
               <div className="flex items-center gap-3 mb-3">
@@ -143,6 +194,7 @@ const Settings: React.FC = () => {
             <h2 className="font-semibold text-foreground flex items-center gap-2">
               <Bell className="h-5 w-5" />
               {language === 'am' ? 'ማሳወቂያዎች' : 'Notifications'}
+              {savingNotifications && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
             </h2>
           </div>
 
@@ -156,7 +208,7 @@ const Settings: React.FC = () => {
               </div>
               <Switch
                 checked={notifications.push}
-                onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, push: checked }))}
+                onCheckedChange={(checked) => handleNotificationChange('push', checked)}
               />
             </div>
 
@@ -169,7 +221,7 @@ const Settings: React.FC = () => {
               </div>
               <Switch
                 checked={notifications.email}
-                onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, email: checked }))}
+                onCheckedChange={(checked) => handleNotificationChange('email', checked)}
               />
             </div>
 
@@ -182,7 +234,7 @@ const Settings: React.FC = () => {
               </div>
               <Switch
                 checked={notifications.orderUpdates}
-                onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, orderUpdates: checked }))}
+                onCheckedChange={(checked) => handleNotificationChange('orderUpdates', checked)}
               />
             </div>
 
@@ -195,7 +247,7 @@ const Settings: React.FC = () => {
               </div>
               <Switch
                 checked={notifications.promotions}
-                onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, promotions: checked }))}
+                onCheckedChange={(checked) => handleNotificationChange('promotions', checked)}
               />
             </div>
 
@@ -208,7 +260,7 @@ const Settings: React.FC = () => {
               </div>
               <Switch
                 checked={notifications.newProducts}
-                onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, newProducts: checked }))}
+                onCheckedChange={(checked) => handleNotificationChange('newProducts', checked)}
               />
             </div>
           </div>
@@ -233,15 +285,22 @@ const Settings: React.FC = () => {
             </button>
 
             <button
-              onClick={() => toast({ description: language === 'am' ? 'በቅርቡ ይመጣል' : 'Coming soon' })}
+              onClick={() => setTwoFactorOpen(true)}
               className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
             >
-              <span>{language === 'am' ? 'ባለ ሁለት ደረጃ ማረጋገጫ' : 'Two-Factor Authentication'}</span>
+              <div className="flex items-center gap-2">
+                <span>{language === 'am' ? 'ባለ ሁለት ደረጃ ማረጋገጫ' : 'Two-Factor Authentication'}</span>
+                {localStorage.getItem('2fa_enabled') === 'true' && (
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                    {language === 'am' ? 'ነቅቷል' : 'Enabled'}
+                  </span>
+                )}
+              </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </button>
 
             <button
-              onClick={() => toast({ description: language === 'am' ? 'በቅርቡ ይመጣል' : 'Coming soon' })}
+              onClick={() => setPrivacyPolicyOpen(true)}
               className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
             >
               <span>{language === 'am' ? 'የግላዊነት ፖሊሲ' : 'Privacy Policy'}</span>
@@ -249,7 +308,7 @@ const Settings: React.FC = () => {
             </button>
 
             <button
-              onClick={() => toast({ description: language === 'am' ? 'በቅርቡ ይመጣል' : 'Coming soon' })}
+              onClick={() => setTermsOpen(true)}
               className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
             >
               <span>{language === 'am' ? 'የአገልግሎት ውሎች' : 'Terms of Service'}</span>
@@ -312,11 +371,11 @@ const Settings: React.FC = () => {
         </div>
       </div>
 
-      {/* Change Password Dialog */}
-      <ChangePasswordDialog 
-        open={changePasswordOpen} 
-        onOpenChange={setChangePasswordOpen} 
-      />
+      {/* Dialogs */}
+      <ChangePasswordDialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen} />
+      <PrivacyPolicyDialog open={privacyPolicyOpen} onOpenChange={setPrivacyPolicyOpen} />
+      <TermsOfServiceDialog open={termsOpen} onOpenChange={setTermsOpen} />
+      <TwoFactorDialog open={twoFactorOpen} onOpenChange={setTwoFactorOpen} />
     </div>
   );
 };
