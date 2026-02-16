@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { ShieldCheck, Smartphone, Loader2 } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { ShieldCheck, Smartphone, Loader2, Copy } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,6 +29,27 @@ const TwoFactorDialog: React.FC<TwoFactorDialogProps> = ({ open, onOpenChange })
   const [is2FAEnabled, setIs2FAEnabled] = useState(() => {
     return localStorage.getItem('2fa_enabled') === 'true';
   });
+
+  // Generate a random secret key for TOTP
+  const secret = useMemo(() => {
+    const stored = localStorage.getItem('2fa_secret');
+    if (stored) return stored;
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    let s = '';
+    for (let i = 0; i < 16; i++) s += chars[Math.floor(Math.random() * chars.length)];
+    localStorage.setItem('2fa_secret', s);
+    return s;
+  }, []);
+
+  const otpauthUrl = `otpauth://totp/AgriConnect:farmer@agriconnect.app?secret=${secret}&issuer=AgriConnect&digits=6&period=30`;
+
+  const copySecret = () => {
+    navigator.clipboard.writeText(secret);
+    toast({
+      title: language === 'am' ? 'ተቀድቷል' : 'Copied',
+      description: language === 'am' ? 'ሚስጥራዊ ቁልፍ ተቀድቷል' : 'Secret key copied to clipboard',
+    });
+  };
 
   const handleEnable = () => {
     setStep('verify');
@@ -159,15 +181,24 @@ const TwoFactorDialog: React.FC<TwoFactorDialogProps> = ({ open, onOpenChange })
         ) : (
           <div className="space-y-4">
             <div className="text-center p-4 bg-muted rounded-lg">
-              <div className="w-32 h-32 mx-auto bg-background border-2 border-dashed border-border rounded-lg flex items-center justify-center mb-3">
-                <p className="text-xs text-muted-foreground px-2">
-                  {language === 'am' ? 'QR ኮድ' : 'QR Code'}
-                </p>
+              <div className="w-40 h-40 mx-auto bg-white rounded-lg flex items-center justify-center mb-3 p-2">
+                <QRCodeSVG value={otpauthUrl} size={144} level="M" />
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground mb-2">
                 {language === 'am'
                   ? 'ይህን QR ኮድ በማረጋገጫ መተግበሪያዎ ይቃኙ'
                   : 'Scan this QR code with your authenticator app'}
+              </p>
+              <div className="flex items-center justify-center gap-2 mt-2">
+                <code className="text-xs bg-background px-2 py-1 rounded border border-border font-mono tracking-widest">
+                  {secret}
+                </code>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={copySecret}>
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {language === 'am' ? 'ወይም ይህን ቁልፍ በእጅ ያስገቡ' : 'Or enter this key manually'}
               </p>
             </div>
 
