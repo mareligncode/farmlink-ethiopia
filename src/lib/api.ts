@@ -1,36 +1,13 @@
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-
-const API_BASE_URL = import.meta.env.VITE_APEI_URL || 'https://farmlink-ethiopia.onrender.com/api';
-
-// Get auth token from localStorage
-const getAuthToken = (): string | null => {
-  return localStorage.getItem('auth_token');
-};
-
-// Save auth token
-export const setAuthToken = (token: string): void => {
-  localStorage.setItem('auth_token', token);
-};
-
-// Remove auth token
-export const removeAuthToken = (): void => {
-  localStorage.removeItem('auth_token');
-};
-
-// Generic fetch wrapper with auth
-async function fetchAPI<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const token = getAuthToken();
-  
-  const headers: HeadersInit = {
+async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const token = localStorage.getItem('auth_token');
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...(options.headers as Record<string, string>),
   };
-
   if (token) {
-    (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -45,6 +22,124 @@ async function fetchAPI<T>(
   }
 
   return data;
+}
+
+export function setAuthToken(token: string): void {
+  localStorage.setItem('auth_token', token);
+}
+
+export function removeAuthToken(): void {
+  localStorage.removeItem('auth_token');
+}
+
+export interface User {
+  id: string;
+  _id?: string;
+  email: string;
+  fullName: string;
+  role: 'farmer' | 'merchant' | 'admin';
+  phone?: string;
+  avatarUrl?: string;
+  languagePreference?: string;
+  farmName?: string;
+  farmLocation?: string;
+  farmSize?: string;
+  region?: string;
+  woreda?: string;
+  businessName?: string;
+  businessLocation?: string;
+  businessType?: string;
+}
+
+export interface Product {
+  id: string;
+  _id?: string;
+  nameEn: string;
+  nameAm?: string;
+  descriptionEn?: string;
+  descriptionAm?: string;
+  price: number;
+  currency: string;
+  quantity: number;
+  unit: string;
+  category: string;
+  imageUrls?: string[];
+  farmerId: User;
+  location?: string;
+  harvestDate?: string;
+  isAvailable: boolean;
+  createdAt: string;
+}
+
+export interface CartItem {
+  id: string;
+  _id?: string;
+  userId: string;
+  productId: Product;
+  quantity: number;
+}
+
+export interface OrderItem {
+  productId: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+export interface Order {
+  id: string;
+  _id?: string;
+  merchantId: User;
+  farmerId: User;
+  items: (OrderItem & { productId: Product })[];
+  totalAmount: number;
+  currency: string;
+  status: string;
+  paymentStatus: string;
+  paymentReference?: string;
+  deliveryAddress?: string;
+  deliveryNotes?: string;
+  createdAt: string;
+}
+
+export interface Notification {
+  id: string;
+  _id?: string;
+  userId: string;
+  type: string;
+  titleEn: string;
+  titleAm?: string;
+  messageEn: string;
+  messageAm?: string;
+  isRead: boolean;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface Review {
+  id: string;
+  _id?: string;
+  productId: string;
+  reviewerId: User;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+}
+
+export interface SalesTrend {
+  date: string;
+  totalSales: number;
+}
+
+export interface ProductStats {
+  productId: string;
+  name: string;
+  soldQuantity: number;
+}
+
+export interface RevenueStats {
+  month: string;
+  totalRevenue: number;
 }
 
 // Auth API
@@ -255,118 +350,6 @@ export const uploadAPI = {
 
 // Re-export API_BASE_URL for external use
 export const getApiBaseUrl = () => API_BASE_URL;
-
-
-
-export interface SalesTrend {
-  date: string;
-  totalSales: number;
-}
-
-export interface ProductStats {
-  productId: string;
-  name: string;
-  soldQuantity: number;
-}
-
-export interface RevenueStats {
-  month: string;
-  totalRevenue: number;
-}
-
-export interface User {
-  id: string;
-  _id?: string;
-  email: string;
-  fullName: string;
-  role: 'farmer' | 'merchant' | 'admin';
-  phone?: string;
-  avatarUrl?: string;
-  languagePreference?: string;
-  farmName?: string;
-  farmLocation?: string;
-  farmSize?: string;
-  region?: string;
-  woreda?: string;
-  businessName?: string;
-  businessLocation?: string;
-  businessType?: string;
-}
-
-export interface Product {
-  id: string;
-  _id?: string;
-  nameEn: string;
-  nameAm?: string;
-  descriptionEn?: string;
-  descriptionAm?: string;
-  price: number;
-  currency: string;
-  quantity: number;
-  unit: string;
-  category: string;
-  imageUrls?: string[];
-  farmerId: User;
-  location?: string;
-  harvestDate?: string;
-  isAvailable: boolean;
-  createdAt: string;
-}
-
-export interface CartItem {
-  id: string;
-  _id?: string;
-  userId: string;
-  productId: Product;
-  quantity: number;
-}
-
-export interface OrderItem {
-  productId: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-}
-
-export interface Order {
-  id: string;
-  _id?: string;
-  merchantId: User;
-  farmerId: User;
-  items: (OrderItem & { productId: Product })[];
-  totalAmount: number;
-  currency: string;
-  status: string;
-  paymentStatus: string;
-  paymentReference?: string;
-  deliveryAddress?: string;
-  deliveryNotes?: string;
-  createdAt: string;
-}
-
-export interface Notification {
-  id: string;
-  _id?: string;
-  userId: string;
-  type: string;
-  titleEn: string;
-  titleAm?: string;
-  messageEn: string;
-  messageAm?: string;
-  isRead: boolean;
-  metadata?: Record<string, unknown>;
-  createdAt: string;
-}
-
-export interface Review {
-  id: string;
-  _id?: string;
-  productId: string;
-  reviewerId: User;
-  rating: number;
-  comment?: string;
-  createdAt: string;
-}
 
 // Analytics API
 export const analyticsAPI = {
