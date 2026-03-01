@@ -10,18 +10,25 @@ connectDB();
 
 const app = express();
 
-// Configure CORS to allow specific origins (for development)
-const allowedOrigins = [
-  'http://localhost:8080',
-  'http://127.0.0.1:8080',
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'capacitor://localhost',
-  'ionic://localhost',
-  'http://localhost',
-  'http://localhost:8100',
-  process.env.FRONTEND_URL
-].filter(Boolean);
+// Configure CORS based on environment
+const isProduction = process.env.NODE_ENV === 'production';
+const allowedOrigins = isProduction 
+  ? [
+      'https://farmlink-ethiopia.onrender.com',
+      'https://farmlink-ethiopia-advice-and-shopping.onrender.com',
+      process.env.FRONTEND_URL
+    ].filter(Boolean)
+  : [
+      'http://localhost:8080',
+      'http://127.0.0.1:8080',
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+      'capacitor://localhost',
+      'ionic://localhost',
+      'http://localhost',
+      'http://localhost:8100',
+      process.env.FRONTEND_URL
+    ].filter(Boolean);
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -31,6 +38,7 @@ app.use(cors({
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
+      console.log(`CORS blocked origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -46,11 +54,19 @@ app.options('*', cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Serve static files from uploads directory
+// Serve static files from uploads directory with production optimizations
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
-  maxAge: '1d', // Cache for 1 day
+  maxAge: isProduction ? '7d' : '1d', // Longer cache in production
   etag: true,
-  lastModified: true
+  lastModified: true,
+  setHeaders: (res, path) => {
+    // Add security headers for production
+    if (isProduction) {
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('X-Frame-Options', 'DENY');
+      res.setHeader('X-XSS-Protection', '1; mode=block');
+    }
+  }
 }));
 
 app.use('/api/auth', require('./routes/auth'));
