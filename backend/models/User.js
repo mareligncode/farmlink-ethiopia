@@ -71,9 +71,9 @@ const userSchema = new mongoose.Schema({
 });
 
 // Encrypt password using bcrypt
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
   this.updatedAt = Date.now();
-  
+
   if (!this.isModified('password')) {
     next();
   }
@@ -82,29 +82,40 @@ userSchema.pre('save', async function(next) {
 });
 
 // Sign JWT and return
-userSchema.methods.getSignedJwtToken = function() {
+userSchema.methods.getSignedJwtToken = function () {
   return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE
   });
 };
 
 // Match user entered password to hashed password in database
-userSchema.methods.matchPassword = async function(enteredPassword) {
+userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
 // Generate email verification token
-userSchema.methods.getEmailVerificationToken = function() {
+userSchema.methods.getEmailVerificationToken = function () {
   const verificationToken = crypto.randomBytes(32).toString('hex');
-  
+
   this.emailVerificationToken = crypto
     .createHash('sha256')
     .update(verificationToken)
     .digest('hex');
-  
+
   this.emailVerificationExpire = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
-  
+
   return verificationToken;
 };
+
+// Fix localhost URLs for existing data when converting to JSON
+userSchema.set('toJSON', {
+  transform: function (doc, ret) {
+    if (ret.avatarUrl && typeof ret.avatarUrl === 'string' && ret.avatarUrl.includes('localhost:5000')) {
+      const baseUrl = process.env.BASE_URL || 'https://farmlink-ethiopia.onrender.com';
+      ret.avatarUrl = ret.avatarUrl.replace('http://localhost:5000', baseUrl);
+    }
+    return ret;
+  }
+});
 
 module.exports = mongoose.model('User', userSchema);

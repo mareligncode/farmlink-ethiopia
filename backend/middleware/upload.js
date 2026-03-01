@@ -8,21 +8,13 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Configure storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, `product-${uniqueSuffix}${path.extname(file.originalname)}`);
-  },
-});
+// Configure memory storage
+const storage = multer.memoryStorage();
 
 // File filter
 const fileFilter = (req, file, cb) => {
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-  
+
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
@@ -53,11 +45,11 @@ const uploadErrorHandler = (err, req, res, next) => {
       return res.status(400).json({ error: 'Unexpected field name. Use "images" for file uploads.' });
     }
   }
-  
+
   if (err.message === 'Invalid file type. Only JPEG, JPG, PNG, and WebP are allowed.') {
     return res.status(400).json({ error: err.message });
   }
-  
+
   next(err);
 };
 

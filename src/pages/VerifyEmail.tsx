@@ -12,12 +12,12 @@ const VerifyEmail: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { t, language } = useLanguage();
   const { toast } = useToast();
-  
+
   const [status, setStatus] = useState<'verifying' | 'success' | 'error' | 'resend'>('verifying');
   const [errorMessage, setErrorMessage] = useState('');
   const [resendEmail, setResendEmail] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
-  
+
   const token = searchParams.get('token');
 
   useEffect(() => {
@@ -28,7 +28,7 @@ const VerifyEmail: React.FC = () => {
       }
 
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/verify-email/${token}`);
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://farmlink-ethiopia.onrender.com/api'}/auth/verify-email/${token}`);
         const data = await response.json();
 
         if (data.success) {
@@ -65,7 +65,7 @@ const VerifyEmail: React.FC = () => {
 
     setResendLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/resend-verification`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://farmlink-ethiopia.onrender.com/api'}/auth/resend-verification`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: resendEmail }),
@@ -127,7 +127,7 @@ const VerifyEmail: React.FC = () => {
               {language === 'am' ? 'ኢሜል ተረጋግጧል!' : 'Email Verified!'}
             </h2>
             <p className="text-muted-foreground">
-              {language === 'am' 
+              {language === 'am'
                 ? 'አካውንትዎ በተሳካ ሁኔታ ተረጋግጧል።'
                 : 'Your account has been verified successfully.'}
             </p>
@@ -191,7 +191,7 @@ const VerifyEmail: React.FC = () => {
               {language === 'am' ? 'ኢሜልዎን ያረጋግጡ' : 'Verify Your Email'}
             </h2>
             <p className="text-muted-foreground">
-              {language === 'am' 
+              {language === 'am'
                 ? 'የማረጋገጫ ኢሜል እንደገና ለመላክ ኢሜልዎን ያስገቡ።'
                 : 'Enter your email to resend the verification link.'}
             </p>

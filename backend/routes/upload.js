@@ -4,8 +4,15 @@ const { upload, uploadErrorHandler } = require('../middleware/upload');
 const { protect } = require('../middleware/auth');
 const path = require('path');
 
+const { createClient } = require('@supabase/supabase-js');
+
+// Initialize Supabase Client
+const supabaseUrl = process.env.SUPABASE_URL || 'https://mlkgvlgjocvrgxwqngnf.supabase.co';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 // @route   POST /api/upload/products
-// @desc    Upload product images
+// @desc    Upload product images (to Supabase Storage)
 // @access  Private (Farmers only)
 router.post('/products', protect, upload, async (req, res) => {
   try {
@@ -13,9 +20,29 @@ router.post('/products', protect, upload, async (req, res) => {
       return res.status(400).json({ error: 'No files uploaded' });
     }
 
-    // Generate URLs for uploaded files
-    const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
-    const imageUrls = req.files.map(file => `${baseUrl}/uploads/products/${file.filename}`);
+    const uploadPromises = req.files.map(async (file) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+      const filename = `product-${uniqueSuffix}${path.extname(file.originalname)}`;
+
+      const { data, error } = await supabase.storage
+        .from('product-images')
+        .upload(filename, file.buffer, {
+          contentType: file.mimetype,
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filename);
+
+      return urlData.publicUrl;
+    });
+
+    const imageUrls = await Promise.all(uploadPromises);
 
     res.json({
       success: true,
@@ -25,6 +52,7 @@ router.post('/products', protect, upload, async (req, res) => {
       },
     });
   } catch (err) {
+    console.error('Supabase upload error:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -34,15 +62,13 @@ router.post('/products', protect, upload, async (req, res) => {
 // @access  Private (Farmers only)
 router.delete('/products/:filename', protect, async (req, res) => {
   try {
-    const fs = require('fs');
-    const filePath = path.join('uploads/products', req.params.filename);
+    const { data, error } = await supabase.storage
+      .from('product-images')
+      .remove([req.params.filename]);
 
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-      res.json({ success: true, message: 'File deleted' });
-    } else {
-      res.status(404).json({ error: 'File not found' });
-    }
+    if (error) throw error;
+
+    res.json({ success: true, message: 'File deleted from cloud' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

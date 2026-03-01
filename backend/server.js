@@ -12,29 +12,18 @@ const app = express();
 
 // Configure CORS based on environment
 const isProduction = process.env.NODE_ENV === 'production';
-const allowedOrigins = isProduction 
-  ? [
-      'https://farmlink-ethiopia.onrender.com',
-      'https://farmlink-ethiopia-advice-and-shopping.onrender.com',
-      process.env.FRONTEND_URL
-    ].filter(Boolean)
-  : [
-      'http://localhost:8080',
-      'http://127.0.0.1:8080',
-      'http://localhost:5173',
-      'http://127.0.0.1:5173',
-      'capacitor://localhost',
-      'ionic://localhost',
-      'http://localhost',
-      'http://localhost:8100',
-      process.env.FRONTEND_URL
-    ].filter(Boolean);
+const allowedOrigins = [
+  'https://farmlink-ethiopia-advice-and-shopping.onrender.com',
+  process.env.FRONTEND_URL,
+  'capacitor://localhost',
+  'ionic://localhost'
+].filter(Boolean);
 
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {

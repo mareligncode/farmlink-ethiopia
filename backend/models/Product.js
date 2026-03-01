@@ -53,9 +53,25 @@ const productSchema = new mongoose.Schema({
 });
 
 // Update the updatedAt field on save
-productSchema.pre('save', function(next) {
+productSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();
+});
+
+// Fix localhost URLs for existing data when converting to JSON
+productSchema.set('toJSON', {
+  transform: function (doc, ret) {
+    if (ret.imageUrls && Array.isArray(ret.imageUrls)) {
+      const baseUrl = process.env.BASE_URL || 'https://farmlink-ethiopia.onrender.com';
+      ret.imageUrls = ret.imageUrls.map(url => {
+        if (url && typeof url === 'string' && url.includes('localhost:5000')) {
+          return url.replace('http://localhost:5000', baseUrl);
+        }
+        return url;
+      });
+    }
+    return ret;
+  }
 });
 
 module.exports = mongoose.model('Product', productSchema);
