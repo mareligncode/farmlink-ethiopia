@@ -331,9 +331,14 @@ export const uploadAPI = {
     const formData = new FormData();
     files.forEach(file => formData.append('images', file));
 
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${API_BASE_URL}/upload/products`, {
       method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers,
       body: formData,
     });
 

@@ -38,6 +38,27 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB max file size
     files: 5, // Max 5 files
   },
-});
+}).array('images', 5);
 
-module.exports = upload;
+// Error handling middleware for multer
+const uploadErrorHandler = (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'File too large. Maximum file size is 5MB.' });
+    }
+    if (err.code === 'LIMIT_FILE_COUNT') {
+      return res.status(400).json({ error: 'Too many files. Maximum 5 files allowed.' });
+    }
+    if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      return res.status(400).json({ error: 'Unexpected field name. Use "images" for file uploads.' });
+    }
+  }
+  
+  if (err.message === 'Invalid file type. Only JPEG, JPG, PNG, and WebP are allowed.') {
+    return res.status(400).json({ error: err.message });
+  }
+  
+  next(err);
+};
+
+module.exports = { upload, uploadErrorHandler };

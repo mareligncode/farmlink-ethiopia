@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const upload = require('../middleware/upload');
+const { upload, uploadErrorHandler } = require('../middleware/upload');
 const { protect } = require('../middleware/auth');
 const path = require('path');
 
 // @route   POST /api/upload/products
 // @desc    Upload product images
 // @access  Private (Farmers only)
-router.post('/products', protect, upload.array('images', 5), async (req, res) => {
+router.post('/products', protect, upload, async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'No files uploaded' });
@@ -47,5 +47,8 @@ router.delete('/products/:filename', protect, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Add error handling for upload routes
+router.use(uploadErrorHandler);
 
 module.exports = router;
