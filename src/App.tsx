@@ -15,23 +15,22 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import VerifyEmail from "./pages/VerifyEmail";
 import Dashboard from "./pages/Dashboard";
-import Products from "./pages/Products";
-import ProductDetail from "./pages/ProductDetail";
-import AddProduct from "./pages/AddProduct";
-import EditProduct from "./pages/EditProduct";
-import Cart from "./pages/Cart";
-import Checkout from "./pages/Checkout";
-import Orders from "./pages/Orders";
-import OrderTracking from "./pages/OrderTracking";
+import Training from "./pages/Training";
+import CropLibrary from "./pages/CropLibrary";
 import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
-import FarmerAnalytics from "./pages/FarmerAnalytics";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      retry: 2,
+    },
+  },
+});
 
-// App component with all providers
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
@@ -51,23 +50,15 @@ const App = () => (
                 <Route path="/verify-email" element={<VerifyEmail />} />
                 <Route element={<AppLayout />}>
                   <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/products" element={<Products />} />
-                  <Route path="/products/:id" element={<ProductDetail />} />
-                  <Route path="/products/add" element={<AddProduct />} />
-                  <Route path="/products/:id/edit" element={<EditProduct />} />
-                  <Route path="/cart" element={<Cart />} />
-                  <Route path="/checkout" element={<Checkout />} />
-                  <Route path="/orders" element={<Orders />} />
-                  <Route path="/orders/:id" element={<OrderTracking />} />
+                  <Route path="/training" element={<Training />} />
+                  <Route path="/crops" element={<CropLibrary />} />
                   <Route path="/notifications" element={<Notifications />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/settings" element={<Settings />} />
-                  <Route path="/analytics" element={<FarmerAnalytics />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <AIAssistant />
-              
             </BrowserRouter>
           </TooltipProvider>
         </AuthProvider>

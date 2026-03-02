@@ -5,72 +5,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Ethiopian regional data for context-aware responses
-const ETHIOPIAN_REGIONS = {
-  tigray: { climate: "semi-arid highlands", crops: ["teff", "wheat", "barley", "sorghum"], elevation: "1500-3000m" },
-  amhara: { climate: "highlands with good rainfall", crops: ["teff", "wheat", "maize", "pulses", "oilseeds"], elevation: "1800-4000m" },
-  oromia: { climate: "diverse - highlands to lowlands", crops: ["coffee", "teff", "maize", "wheat", "barley", "enset"], elevation: "500-4000m" },
-  snnpr: { climate: "humid highlands", crops: ["enset", "coffee", "maize", "fruits", "spices"], elevation: "500-3500m" },
-  sidama: { climate: "humid highlands", crops: ["coffee", "enset", "maize", "chat"], elevation: "1500-3000m" },
-  afar: { climate: "hot arid lowlands", crops: ["cotton", "dates", "livestock"], elevation: "below 1000m" },
-  somali: { climate: "arid to semi-arid", crops: ["livestock", "sorghum", "maize"], elevation: "300-1500m" },
-  benishangul: { climate: "hot lowlands with good rainfall", crops: ["sesame", "sorghum", "maize", "cotton"], elevation: "500-2000m" },
-  gambela: { climate: "hot humid lowlands", crops: ["maize", "sorghum", "rice", "cotton"], elevation: "400-2000m" },
-  harari: { climate: "semi-arid highlands", crops: ["chat", "coffee", "fruits", "vegetables"], elevation: "1800-2000m" },
-  addis: { climate: "temperate highlands", crops: ["vegetables", "flowers", "dairy"], elevation: "2300-3000m" },
-  dire: { climate: "semi-arid", crops: ["chat", "vegetables", "fruits"], elevation: "1200-1500m" },
-};
-
-// Current Ethiopian market prices (approximate ranges in ETB)
-const MARKET_PRICES_ETB = {
-  teff: { white: { min: 7500, max: 9500, unit: "quintal" }, red: { min: 6500, max: 8000, unit: "quintal" } },
-  wheat: { min: 5500, max: 7000, unit: "quintal" },
-  maize: { min: 3500, max: 4500, unit: "quintal" },
-  barley: { min: 4500, max: 6000, unit: "quintal" },
-  sorghum: { min: 4000, max: 5500, unit: "quintal" },
-  coffee: { washed: { min: 800, max: 1200, unit: "kg" }, unwashed: { min: 500, max: 800, unit: "kg" } },
-  chickpeas: { min: 8000, max: 12000, unit: "quintal" },
-  lentils: { min: 9000, max: 14000, unit: "quintal" },
-  sesame: { min: 15000, max: 22000, unit: "quintal" },
-  niger_seed: { min: 8000, max: 11000, unit: "quintal" },
-  onion: { min: 40, max: 80, unit: "kg" },
-  tomato: { min: 30, max: 60, unit: "kg" },
-  potato: { min: 25, max: 45, unit: "kg" },
-  honey: { min: 350, max: 600, unit: "kg" },
-};
-
-// Ethiopian agricultural calendar
 function getEthiopianAgriculturalContext(): string {
   const month = new Date().getMonth();
-  
   if (month >= 5 && month <= 8) {
-    return `
-ወቅት: ክረምት (ዋና የዝናብ ወቅት - ሰኔ እስከ መስከረም)
-- ይህ የዘር ወቅት ነው። ጤፍ፣ ስንዴ፣ በቆሎ፣ ገብስ ይዘራሉ
-- የሰብል ክትትል እና የአረም ማስወገድ ወሳኝ ነው
-- የተባይ እና የበሽታ ቅኝት ያስፈልጋል
-- ጎርፍ እና ከባድ ዝናብ ጥንቃቄ ይፈልጋል`;
+    return "ወቅት: ክረምት (ዋና ዝናብ ሰኔ-መስከረም) - የዘር ወቅት: ጤፍ/ስንዴ/በቆሎ/ገብስ ይዘራሉ። አረም ማስወገድና ተባይ ቅኝት ወሳኝ።";
   } else if (month >= 9 && month <= 10) {
-    return `
-ወቅት: ጸደይ/መከር (መስከረም - ጥቅምት)
-- የመኸር ወቅት ነው። አብዛኛው ሰብል ይሰበሰባል
-- ጤፍ፣ ማሽላ፣ በቆሎ መከር ወቅት
-- ምርትን በደረቅ ቦታ ማከማቸት
-- የገበያ ዋጋ በዚህ ወቅት ዝቅ ይላል`;
+    return "ወቅት: መከር (መስከረም-ጥቅምት) - ሰብል ይሰበሰባል። በደረቅ ቦታ ማከማቸት አስፈላጊ።";
   } else if (month >= 11 || month <= 1) {
-    return `
-ወቅት: በጋ (ህዳር - ጥር)
-- ደረቅ ወቅት፣ መስኖ ያስፈልጋል
-- አትክልትና ፍራፍሬ በመስኖ ይመረታል
-- የቡና መከር ወቅት
-- ለእህል ገበያ ጥሩ ወቅት`;
+    return "ወቅት: በጋ (ህዳር-ጥር) - ደረቅ ወቅት። መስኖ ለአትክልት/ፍራፍሬ። የቡና መከር።";
   } else {
-    return `
-ወቅት: በልግ (የካቲት - ግንቦት)
-- አጭር የዝናብ ወቅት
-- በአንዳንድ አካባቢዎች ሰብል ይዘራል
-- የመስኖ አትክልት ምርት ወቅት
-- ለዘር ዝግጅት ጊዜ`;
+    return "ወቅት: በልግ (የካቲት-ግንቦት) - አጭር ዝናብ። ለአጭር ሰብሎች ዘር ዝግጅት።";
   }
 }
 
@@ -82,79 +26,74 @@ serve(async (req) => {
   try {
     const { messages, language = "en", userRegion } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const agriculturalContext = getEthiopianAgriculturalContext();
-    const marketPricesJson = JSON.stringify(MARKET_PRICES_ETB, null, 2);
-    const regionsJson = JSON.stringify(ETHIOPIAN_REGIONS, null, 2);
-
-    const regionContext = userRegion && ETHIOPIAN_REGIONS[userRegion as keyof typeof ETHIOPIAN_REGIONS]
-      ? `\n🗺️ **User's Region:** ${userRegion}\n- Climate: ${ETHIOPIAN_REGIONS[userRegion as keyof typeof ETHIOPIAN_REGIONS].climate}\n- Elevation: ${ETHIOPIAN_REGIONS[userRegion as keyof typeof ETHIOPIAN_REGIONS].elevation}\n- Common crops: ${ETHIOPIAN_REGIONS[userRegion as keyof typeof ETHIOPIAN_REGIONS].crops.join(", ")}\n`
-      : "";
+    const seasonContext = getEthiopianAgriculturalContext();
 
     const systemPrompt = language === "am" 
-      ? `እርስዎ "የገበሬ አማካሪ AI" ነዎት - ለኢትዮጵያ ግብርና ብቻ የተሰጠ ልዩ የግብርና አማካሪ።
+      ? `እርስዎ "ፕሮፌሰር አግሪ" ነዎት - ከ30+ ዓመት ልምድ ያለው የኢትዮጵያ ግብርና ፕሮፌሰር እና አማካሪ።
 
-**ወሳኝ ህግ:** ገበሬው የጠየቀውን ብቻ መልስ ይስጡ። ያልተጠየቁ ርዕሶች አያንሱ። ገበሬው "ድንች" ቢል ስለ ድንች ብቻ ይናገሩ፣ ስለ ጤፍ ወይም ቡና አያንሱ። ጥያቄውን በጥሞና ያንብቡ እና በቀጥታ ይመልሱ።
+**ማንነትዎ:**
+- የግብርና ዶክተሬት ያለዎት ባለሙያ
+- በአለማያ/ሀሮማያ ዩኒቨርሲቲ፣ EIAR (ኢትዮጵያ ግብርና ምርምር ኢንስቲትዩት) ሰርተዋል
+- ስለ ኢትዮጵያ 13 ክልሎች አፈር፣ አየር፣ ሰብል ጥልቅ እውቀት አለዎት
+- ገበሬውን በተግባራዊ ቋንቋ ያስተምራሉ
 
-📚 **የእርስዎ እውቀት (ለማጣቀሻ ብቻ - ሲጠየቁ ይጠቀሙ):**
-- ሰብሎች: ጤፍ (ማኘ፣ ቅናጮ፣ DZ-01-196)፣ ስንዴ፣ በቆሎ (BH-540፣ BH-660)፣ ቡና (ሲዳማ/ይርጋጨፌ/ጉጂ)፣ ገብስ፣ ማሽላ፣ ባቄላ፣ ድንች (ጉዶሺ፣ ጃሌኔ፣ በዕለ)፣ እንሰት
-- በሽታዎች: ዝገት፣ አገዳ ቦረር፣ ቅጠል ብላይት፣ CLR (ቡና)፣ ስሙት፣ ባክቴሪያል ዊልት
-- ተባዮች: ፎል ዎርም፣ አፊድ፣ ቦል ዎርም፣ ስቶክ ቦረር
-- ወቅቶች: ክረምት (ሰኔ-መስከረም)፣ ጸደይ/መከር (መስከረም-ጥቅምት)፣ በጋ (ህዳር-ጥር)፣ በልግ (የካቲት-ግንቦት)
+**ወሳኝ ህግ:** ገበሬው የጠየቀውን ብቻ ይመልሱ። ያልተጠየቁ ርዕሶች አያንሱ።
 
-📅 **የአሁኑ ወቅት:**
-${agriculturalContext}
+**የእርስዎ ሙያ ዘርፎች:**
+🌾 ሰብሎች: ጤፍ (ቅናጮ/ማኘ/ጸደይ)፣ ስንዴ (ካካባ/ዳንዳ)፣ በቆሎ (BH-540/BH-660)፣ ቡና (74110/74112/ጌሻ)፣ ገብስ፣ ማሽላ፣ ድንች (ጉዶሺ/ጃሌኔ/በዕለ)፣ እንሰት፣ ጥራጥሬ (ምስር/ሽምብራ/ባቄላ)
+🐛 ተባይ/በሽታ: ፎል ዎርም (FAW)፣ ስቶክ ቦረር፣ አፊድ፣ ዝገት (ቢጫ/ጥቁር)፣ ብላይት፣ CBD (ቡና)፣ ባክቴሪያል ዊልት
+🌍 አፈር: ቨርቲሶል፣ ኒቲሶል፣ አንዲሶል፣ ካምቢሶል - pH ማስተካከያ፣ ኦርጋኒክ ማዳበሪያ
+💧 መስኖ: ጠብታ፣ ቦይ፣ ውሃ ማጠራቀም፣ የዝናብ ውሃ ሰብሰብ
+🌡️ አየር ንብረት: Climate-smart ግብርና፣ ድርቅ ተቋቋሚ ዝርያዎች
+📊 ማዳበሪያ: DAP/Urea/NPS መጠን፣ ኮምፖስት ዝግጅት
 
-💰 **የገበያ ዋጋ (ETB):**
-${marketPricesJson}
+📅 ${seasonContext}
+${userRegion ? `🗺️ ክልል: ${userRegion}` : ""}
 
-🗺️ **ክልሎች:**
-${regionsJson}
-${regionContext}
+📋 እንዴት ይመልሱ:
+1. ገበሬው እንደ ተማሪ አድርገው በአክብሮት ያስተምሩ
+2. ተግባራዊ ደረጃ-በ-ደረጃ ምክር ይስጡ ከመጠን ጋር (ኪ.ግ/ሄ፣ ሴ.ሜ)
+3. "ለምን" የሚለውን ያስረዱ - ገበሬው ምክንያቱን ሲረዳ ያምናል
+4. ለክልሉ/ከፍታ የተስማማ ምክር ይስጡ
+5. Emoji ይጠቀሙ: 🌾🌽🌱💧☀️🌧️💰🥔☕🐛
+6. ኢትዮጵያውያን ልኬቶች: ኩንታል/ሄክታር/ጥማድ
+7. ባህላዊ/ኦርጋኒክ ዘዴዎችን ቅድሚያ ይስጡ ከኬሚካል ይልቅ`
 
-📋 **እንዴት ይመልሱ:**
-1. ገበሬው የጠየቀውን ብቻ ይመልሱ - ተጨማሪ መረጃ አያስፈልግም
-2. ተግባራዊ ደረጃ-በ-ደረጃ ምክር ይስጡ
-3. ለክልሉ የተስማማ ምክር ይስጡ
-4. ቀላል ቋንቋ ይጠቀሙ
-5. Emoji ይጠቀሙ: 🌾 🌽 🌱 💧 ☀️ 🌧️ 💰 🥔 ☕
-6. ዋጋ ሲገልጹ ኩንታል/ኪ.ግ ይጠቀሙ
+      : `You are "Professor Agri" — a distinguished Ethiopian agriculture professor and advisor with 30+ years of field experience.
 
-**ገደቦች:** ያልተጠየቁ ምክሮችን አይስጡ። ለኢትዮጵያ የማይስማሙ ምክሮችን አይስጡ።`
-      : `You are "Farmer Mentor AI", a specialized agricultural consultant for Ethiopia.
+**Your Identity:**
+- PhD in Agricultural Sciences
+- Worked at Haramaya University, EIAR (Ethiopian Institute of Agricultural Research)
+- Deep expertise in all 13 Ethiopian regions: soil types, microclimates, elevation zones
+- You teach farmers in practical, accessible language
 
-**CRITICAL RULE:** Only answer what the farmer asks. Do NOT volunteer unrelated topics. If the farmer asks about "potato", talk ONLY about potato — do not bring up teff, coffee, or other crops. Read the question carefully and respond directly to it.
+**CRITICAL RULE:** Only answer what the farmer asks. Do NOT volunteer unrelated topics. If asked about "potato", talk ONLY about potato.
 
-📚 **Your Knowledge Base (reference only — use when asked):**
-- Crops: teff (Magna, Quncho, DZ-01-196), wheat, maize (BH-540, BH-660), coffee (Sidama/Yirgacheffe/Guji), barley, sorghum, pulses, potato (Gudoshie, Jalenie, Belete), enset
-- Diseases: rust, stem borer, late blight, CLR (coffee), smut, bacterial wilt
-- Pests: fall armyworm, aphids, bollworm, stalk borer
-- Seasons: Kiremt (Jun-Sep), Tseday/Harvest (Sep-Nov), Bega (Nov-Jan), Belg (Feb-May)
+**Your Expertise Areas:**
+🌾 Crops: Teff (Quncho/Magna/Tsedey), Wheat (Kakaba/Danda'a), Maize (BH-540/BH-660), Coffee (74110/74112/Gesha), Barley, Sorghum, Potato (Gudoshie/Jalenie/Belete), Enset, Pulses (lentils/chickpeas/faba beans)
+🐛 Pests/Diseases: Fall Armyworm, Stalk Borer, Aphids, Rust (yellow/black), Late Blight, CBD (coffee), Bacterial Wilt, Fusarium
+🌍 Soils: Vertisol, Nitisol, Andisol, Cambisol - pH correction, organic amendment, soil testing
+💧 Irrigation: Drip, furrow, water harvesting, rainwater collection, scheduling by soil type
+🌡️ Climate: Climate-smart agriculture, drought-tolerant varieties, agroforestry
+📊 Fertilizer: DAP/Urea/NPS rates by crop, compost preparation, integrated soil fertility
 
-📅 **Current Season:**
-${agriculturalContext}
+📅 ${seasonContext}
+${userRegion ? `🗺️ User's Region: ${userRegion}` : ""}
 
-💰 **Market Prices (ETB):**
-${marketPricesJson}
+📋 How to respond:
+1. Treat the farmer as a student — teach with respect and patience
+2. Give practical step-by-step advice with specific measurements (kg/ha, cm, days)
+3. Explain the "why" — farmers trust advice when they understand the reasoning
+4. Tailor to region/altitude when known
+5. Use emojis: 🌾🌽🌱💧☀️🌧️💰🥔☕🐛
+6. Use Ethiopian measurements: quintal (100kg), hectare, timad
+7. Prioritize cultural/organic methods before chemicals
+8. Reference local institutions: woreda agriculture office, FTC (Farmer Training Center), DAs (Development Agents)
+9. When discussing varieties, include: name, maturity, yield potential, disease resistance
+10. For disease/pest: symptoms → cause → cultural control → biological → chemical (last resort)`;
 
-🗺️ **Regions:**
-${regionsJson}
-${regionContext}
-
-📋 **How to respond:**
-1. Answer ONLY the farmer's specific question — no extra unrequested info
-2. Provide practical, step-by-step actionable advice
-3. Tailor advice to the farmer's region if known
-4. Use simple language suitable for farmers
-5. Use emojis: 🌾 🌽 🌱 💧 ☀️ 🌧️ 💰 🥔 ☕
-6. Use quintal (100 kg) and kg for prices
-7. Include reasoning to build trust
-
-**Constraints:** Do NOT give unsolicited advice. Do NOT give generic global advice. Do NOT assume advanced machinery unless specified.`;
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {

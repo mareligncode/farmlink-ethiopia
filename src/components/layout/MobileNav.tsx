@@ -1,21 +1,17 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Package, ShoppingCart, User, Bell } from 'lucide-react';
+import { Home, GraduationCap, Leaf, Bell, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useAuth } from '@/contexts/AuthContext';
 
 const MobileNav: React.FC = () => {
   const location = useLocation();
   const { t } = useLanguage();
-  const { profile } = useAuth();
-
-  const isFarmer = profile?.role === 'farmer';
 
   const navItems = [
     { path: '/dashboard', icon: Home, label: t('nav.home') },
-    { path: '/products', icon: Package, label: t('nav.products') },
-    ...(isFarmer ? [] : [{ path: '/cart', icon: ShoppingCart, label: t('nav.cart') }]),
+    { path: '/training', icon: GraduationCap, label: t('nav.training') },
+    { path: '/crops', icon: Leaf, label: t('nav.crops') },
     { path: '/notifications', icon: Bell, label: t('nav.notifications') },
     { path: '/profile', icon: User, label: t('nav.profile') },
   ];

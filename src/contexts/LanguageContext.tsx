@@ -11,17 +11,16 @@ interface Translations {
 
 const translations: Translations = {
   // Common
-  'app.name': { en: 'AgriConnect', am: 'አግሪኮኔክት' },
-  'app.tagline': { en: 'Connecting Ethiopian Farmers with Markets', am: 'የኢትዮጵያ ገበሬዎችን ከገበያ ጋር ማገናኘት' },
+  'app.name': { en: 'AgriAdvisor', am: 'አግሪ አድቫይዘር' },
+  'app.tagline': { en: 'Ethiopian Agricultural Training & Advisory', am: 'የኢትዮጵያ ግብርና ስልጠናና ምክር' },
   
   // Navigation
   'nav.home': { en: 'Home', am: 'መነሻ' },
-  'nav.products': { en: 'Products', am: 'ምርቶች' },
-  'nav.orders': { en: 'Orders', am: 'ትዕዛዞች' },
-  'nav.cart': { en: 'Cart', am: 'ጋሪ' },
+  'nav.training': { en: 'Training', am: 'ስልጠና' },
+  'nav.crops': { en: 'Crops', am: 'ሰብሎች' },
   'nav.profile': { en: 'Profile', am: 'መገለጫ' },
   'nav.settings': { en: 'Settings', am: 'ቅንብሮች' },
-  'nav.notifications': { en: 'Notifications', am: 'ማሳወቂያዎች' },
+  'nav.notifications': { en: 'Alerts', am: 'ማሳወቂያ' },
   
   // Auth
   'auth.login': { en: 'Login', am: 'ግባ' },
@@ -38,59 +37,20 @@ const translations: Translations = {
   'auth.hasAccount': { en: 'Already have an account?', am: 'አስቀድሞ መለያ አለዎት?' },
   
   // Onboarding
-  'onboarding.welcome': { en: 'Welcome to AgriConnect', am: 'ወደ አግሪኮኔክት እንኳን ደህና መጡ' },
-  'onboarding.slide1.title': { en: 'Connect with Farmers', am: 'ከገበሬዎች ጋር ተገናኝ' },
-  'onboarding.slide1.desc': { en: 'Find fresh produce directly from local Ethiopian farmers', am: 'ትኩስ ምርቶችን በቀጥታ ከአካባቢው ገበሬዎች ያግኙ' },
-  'onboarding.slide2.title': { en: 'Sell Your Harvest', am: 'ምርትዎን ይሽጡ' },
-  'onboarding.slide2.desc': { en: 'Farmers can list and sell their products to buyers nationwide', am: 'ገበሬዎች ምርቶቻቸውን ለገዢዎች መዘርዘርና መሸጥ ይችላሉ' },
-  'onboarding.slide3.title': { en: 'Secure Payments', am: 'ደህንነቱ የተጠበቀ ክፍያ' },
-  'onboarding.slide3.desc': { en: 'Fast and secure payment processing for all transactions', am: 'ለሁሉም ግብይቶች ፈጣንና ደህንነቱ የተጠበቀ የክፍያ ሂደት' },
+  'onboarding.welcome': { en: 'Welcome to AgriAdvisor', am: 'ወደ አግሪ አድቫይዘር እንኳን ደህና መጡ' },
+  'onboarding.slide1.title': { en: 'Expert Farming Advice', am: 'የባለሙያ ግብርና ምክር' },
+  'onboarding.slide1.desc': { en: 'Get professional agricultural guidance tailored for Ethiopian farmers', am: 'ለኢትዮጵያ ገበሬዎች የተዘጋጀ የባለሙያ ግብርና መመሪያ ያግኙ' },
+  'onboarding.slide2.title': { en: 'Learn & Grow', am: 'ይማሩ እና ያድጉ' },
+  'onboarding.slide2.desc': { en: 'Step-by-step training on soil preparation, irrigation, pest control and more', am: 'ደረጃ-በ-ደረጃ የአፈር ዝግጅት፣ መስኖ፣ ተባይ ቁጥጥር ስልጠና' },
+  'onboarding.slide3.title': { en: 'AI-Powered Assistance', am: 'በAI የሚሰራ ድጋፍ' },
+  'onboarding.slide3.desc': { en: 'Diagnose crop diseases, get weather advice, and access market insights instantly', am: 'የሰብል በሽታ ይለዩ፣ የአየር ሁኔታ ምክር ያግኙ፣ የገበያ ትንታኔ ይመልከቱ' },
   'onboarding.getStarted': { en: 'Get Started', am: 'ጀምር' },
   'onboarding.next': { en: 'Next', am: 'ቀጣይ' },
   'onboarding.skip': { en: 'Skip', am: 'ዝለል' },
   
-  // Products
-  'product.add': { en: 'Add Product', am: 'ምርት ጨምር' },
-  'product.edit': { en: 'Edit Product', am: 'ምርት አስተካክል' },
-  'product.name': { en: 'Product Name', am: 'የምርት ስም' },
-  'product.description': { en: 'Description', am: 'መግለጫ' },
-  'product.category': { en: 'Category', am: 'ምድብ' },
-  'product.price': { en: 'Price', am: 'ዋጋ' },
-  'product.quantity': { en: 'Quantity', am: 'ብዛት' },
-  'product.unit': { en: 'Unit', am: 'ክፍል' },
-  'product.available': { en: 'Available', am: 'ይገኛል' },
-  'product.outOfStock': { en: 'Out of Stock', am: 'አልቋል' },
-  'product.addToCart': { en: 'Add to Cart', am: 'ወደ ጋሪ ጨምር' },
-  'product.buyNow': { en: 'Buy Now', am: 'አሁን ግዛ' },
-  
-  // Categories
-  'category.grains': { en: 'Grains', am: 'እህሎች' },
-  'category.vegetables': { en: 'Vegetables', am: 'አትክልቶች' },
-  'category.fruits': { en: 'Fruits', am: 'ፍራፍሬዎች' },
-  'category.legumes': { en: 'Legumes', am: 'ጥራጥሬዎች' },
-  'category.spices': { en: 'Spices', am: 'ቅመማ ቅመም' },
-  'category.coffee': { en: 'Coffee', am: 'ቡና' },
-  'category.oilseeds': { en: 'Oilseeds', am: 'የዘይት ዘሮች' },
-  'category.livestock': { en: 'Livestock', am: 'እንስሳት' },
-  'category.dairy': { en: 'Dairy', am: 'የወተት ውጤቶች' },
-  'category.honey': { en: 'Honey', am: 'ማር' },
-  'category.other': { en: 'Other', am: 'ሌላ' },
-  
-  // Orders
-  'order.place': { en: 'Place Order', am: 'ትዕዛዝ አስገባ' },
-  'order.status': { en: 'Order Status', am: 'የትዕዛዝ ሁኔታ' },
-  'order.pending': { en: 'Pending', am: 'በመጠባበቅ ላይ' },
-  'order.confirmed': { en: 'Confirmed', am: 'ተረጋግጧል' },
-  'order.processing': { en: 'Processing', am: 'በሂደት ላይ' },
-  'order.shipped': { en: 'Shipped', am: 'ተልኳል' },
-  'order.delivered': { en: 'Delivered', am: 'ደርሷል' },
-  'order.cancelled': { en: 'Cancelled', am: 'ተሰርዟል' },
-  'order.total': { en: 'Total', am: 'ጠቅላላ' },
-  
   // Profile
   'profile.farmName': { en: 'Farm Name', am: 'የእርሻ ስም' },
   'profile.farmLocation': { en: 'Farm Location', am: 'የእርሻ አካባቢ' },
-  'profile.businessName': { en: 'Business Name', am: 'የንግድ ስም' },
   'profile.phone': { en: 'Phone Number', am: 'ስልክ ቁጥር' },
   'profile.region': { en: 'Region', am: 'ክልል' },
   'profile.update': { en: 'Update Profile', am: 'መገለጫ አዘምን' },
@@ -108,9 +68,6 @@ const translations: Translations = {
   // Messages
   'message.success': { en: 'Success!', am: 'ተሳክቷል!' },
   'message.error': { en: 'An error occurred', am: 'ስህተት ተከስቷል' },
-  'message.noProducts': { en: 'No products found', am: 'ምንም ምርቶች አልተገኙም' },
-  'message.noOrders': { en: 'No orders yet', am: 'እስካሁን ትዕዛዞች የሉም' },
-  'message.emptyCart': { en: 'Your cart is empty', am: 'ጋሪዎ ባዶ ነው' },
 };
 
 interface LanguageContextType {
