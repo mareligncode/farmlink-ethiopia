@@ -10,7 +10,6 @@ connectDB();
 
 const app = express();
 
-// Configure CORS based on environment
 const isProduction = process.env.NODE_ENV === 'production';
 const allowedOrigins = [
   'https://farmlink-ethiopia-advice-and-shopping.onrender.com',
@@ -21,7 +20,6 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
     if (allowedOrigins.indexOf(origin) !== -1) {
@@ -36,14 +34,11 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning']
 }));
 
-// Handle preflight requests
 app.options('*', cors());
 
-// Increase body size limit for file uploads
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Serve static files from uploads directory with production optimizations
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
   maxAge: isProduction ? '7d' : '1d', // Longer cache in production
   etag: true,

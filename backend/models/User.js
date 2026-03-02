@@ -110,9 +110,17 @@ userSchema.methods.getEmailVerificationToken = function () {
 // Fix localhost URLs for existing data when converting to JSON
 userSchema.set('toJSON', {
   transform: function (doc, ret) {
-    if (ret.avatarUrl && typeof ret.avatarUrl === 'string' && ret.avatarUrl.includes('localhost:5000')) {
+    if (ret.avatarUrl && typeof ret.avatarUrl === 'string') {
       const baseUrl = process.env.BASE_URL || 'https://farmlink-ethiopia.onrender.com';
-      ret.avatarUrl = ret.avatarUrl.replace('http://localhost:5000', baseUrl);
+
+      // Handle local URLs (localhost or 127.0.0.1)
+      if (ret.avatarUrl.includes('localhost:5000') || ret.avatarUrl.includes('127.0.0.1:5000')) {
+        ret.avatarUrl = ret.avatarUrl.replace(/http:\/\/(localhost|127\.0\.0\.1):5000/, baseUrl);
+      }
+      // Handle relative upload paths
+      else if (ret.avatarUrl.startsWith('/uploads')) {
+        ret.avatarUrl = `${baseUrl}${ret.avatarUrl}`;
+      }
     }
     return ret;
   }

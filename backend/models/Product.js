@@ -64,9 +64,18 @@ productSchema.set('toJSON', {
     if (ret.imageUrls && Array.isArray(ret.imageUrls)) {
       const baseUrl = process.env.BASE_URL || 'https://farmlink-ethiopia.onrender.com';
       ret.imageUrls = ret.imageUrls.map(url => {
-        if (url && typeof url === 'string' && url.includes('localhost:5000')) {
-          return url.replace('http://localhost:5000', baseUrl);
+        if (!url) return url;
+
+        // Handle local URLs (localhost or 127.0.0.1)
+        if (typeof url === 'string' && (url.includes('localhost:5000') || url.includes('127.0.0.1:5000'))) {
+          return url.replace(/http:\/\/(localhost|127\.0\.0\.1):5000/, baseUrl);
         }
+
+        // Handle relative upload paths (e.g., /uploads/products/...)
+        if (typeof url === 'string' && url.startsWith('/uploads')) {
+          return `${baseUrl}${url}`;
+        }
+
         return url;
       });
     }
