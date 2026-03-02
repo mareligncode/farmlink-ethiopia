@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Users, ShoppingBag, Shield, Sprout } from 'lucide-react';
+import { ChevronRight, GraduationCap, Leaf, Sparkles, Sprout } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
@@ -8,21 +8,21 @@ import { cn } from '@/lib/utils';
 const slides = [
   {
     id: 1,
-    icon: Users,
+    icon: GraduationCap,
     titleKey: 'onboarding.slide1.title',
     descKey: 'onboarding.slide1.desc',
     bg: 'bg-gradient-hero',
   },
   {
     id: 2,
-    icon: ShoppingBag,
+    icon: Leaf,
     titleKey: 'onboarding.slide2.title',
     descKey: 'onboarding.slide2.desc',
     bg: 'bg-gradient-accent',
   },
   {
     id: 3,
-    icon: Shield,
+    icon: Sparkles,
     titleKey: 'onboarding.slide3.title',
     descKey: 'onboarding.slide3.desc',
     bg: 'bg-primary',
@@ -45,10 +45,6 @@ const Onboarding: React.FC = () => {
   const handleGetStarted = () => {
     localStorage.setItem('hasSeenOnboarding', 'true');
     navigate('/auth', { replace: true });
-  };
-
-  const handleSkip = () => {
-    handleGetStarted();
   };
 
   const slide = slides[currentSlide];
@@ -83,7 +79,7 @@ const Onboarding: React.FC = () => {
         </div>
         <Button
           variant="ghost"
-          onClick={handleSkip}
+          onClick={handleGetStarted}
           className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-transparent"
         >
           {t('onboarding.skip')}
@@ -105,7 +101,6 @@ const Onboarding: React.FC = () => {
 
       {/* Navigation */}
       <div className="p-8 safe-area-bottom">
-        {/* Dots */}
         <div className="flex justify-center gap-2 mb-8">
           {slides.map((_, index) => (
             <button
@@ -121,7 +116,6 @@ const Onboarding: React.FC = () => {
           ))}
         </div>
 
-        {/* Button */}
         <Button
           onClick={handleNext}
           size="xl"
