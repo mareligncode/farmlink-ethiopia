@@ -257,40 +257,8 @@ const Auth: React.FC = () => {
               </div>
             )}
 
-            {/* Role Selection - Signup only */}
-            {!isLogin && (
-              <div className="space-y-2">
-                <Label>{t('auth.selectRole')}</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedRole('farmer')}
-                    className={cn(
-                      "flex flex-col items-center p-4 rounded-xl border-2 transition-all",
-                      selectedRole === 'farmer'
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/50"
-                    )}
-                  >
-                    <span className="text-2xl mb-1">🌾</span>
-                    <span className="font-medium text-sm">{t('auth.farmer')}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedRole('merchant')}
-                    className={cn(
-                      "flex flex-col items-center p-4 rounded-xl border-2 transition-all",
-                      selectedRole === 'merchant'
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/50"
-                    )}
-                  >
-                    <span className="text-2xl mb-1">🏪</span>
-                    <span className="font-medium text-sm">{t('auth.merchant')}</span>
-                  </button>
-                </div>
-              </div>
-            )}
+
+
 
             {/* Submit Button */}
             <Button
