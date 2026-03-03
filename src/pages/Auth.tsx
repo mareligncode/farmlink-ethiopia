@@ -79,7 +79,7 @@ const Auth: React.FC = () => {
         }
       } else {
         const validated = signupSchema.parse(formData);
-        const { error } = await signUp(validated.email, validated.password, validated.fullName, selectedRole);
+        const { error } = await signUp(validated.email, validated.password, validated.fullName, 'farmer');
         
         if (error) {
           toast({
