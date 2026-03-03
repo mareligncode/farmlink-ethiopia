@@ -32,7 +32,7 @@ const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<'farmer' | 'merchant'>('merchant');
+  
   
   const [formData, setFormData] = useState({
     email: '',
