@@ -15,7 +15,10 @@ const allowedOrigins = [
   'https://farmlink-ethiopia-advice-and-shopping.onrender.com',
   process.env.FRONTEND_URL,
   'capacitor://localhost',
-  'ionic://localhost'
+  'ionic://localhost',
+  'http://localhost:5173',
+  'http://localhost:8080',
+  /\.lovable\.app$/
 ].filter(Boolean);
 
 app.use(cors({
