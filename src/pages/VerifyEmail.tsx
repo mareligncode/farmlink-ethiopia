@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
-import { authAPI, setAuthToken } from '@/lib/api';
+import { getApiBaseUrl, setAuthToken } from '@/lib/api';
 
 const VerifyEmail: React.FC = () => {
+  const API_BASE_URL = getApiBaseUrl();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { t, language } = useLanguage();
@@ -28,7 +29,7 @@ const VerifyEmail: React.FC = () => {
       }
 
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://farmlink-ethiopia.onrender.com/api'}/auth/verify-email/${token}`);
+        const response = await fetch(`${API_BASE_URL}/auth/verify-email/${token}`);
         const data = await response.json();
 
         if (data.success) {
@@ -65,7 +66,7 @@ const VerifyEmail: React.FC = () => {
 
     setResendLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://farmlink-ethiopia.onrender.com/api'}/auth/resend-verification`, {
+      const response = await fetch(`${API_BASE_URL}/auth/resend-verification`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: resendEmail }),
