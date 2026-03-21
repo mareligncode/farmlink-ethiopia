@@ -16,7 +16,7 @@ export const useRealtimeOrders = ({
 }: UseRealtimeOrdersOptions = {}) => {
   const queryClient = useQueryClient();
   const { profile } = useAuth();
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastDataRef = useRef<string>('');
 
   const checkForUpdates = useCallback(async () => {
