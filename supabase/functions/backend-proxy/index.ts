@@ -65,7 +65,9 @@ serve(async (req) => {
         "x-real-ip",
         "cf-connecting-ip",
         "cf-ray",
-      ].forEach((header) => forwardHeaders.delete(header));
+      "origin",
+      "referer",
+      ].forEach((h) => forwardHeaders.delete(h));
 
       if (canHaveBody && !forwardHeaders.has("content-type")) {
         forwardHeaders.set("content-type", "application/json");
