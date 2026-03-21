@@ -50,12 +50,21 @@ serve(async (req) => {
       "cf-ray",
     ].forEach((header) => forwardHeaders.delete(header));
 
-    const backendResponse = await fetch(targetUrl, {
-      method: req.method,
-      headers: forwardHeaders,
-      body: req.method === "GET" || req.method === "HEAD" ? undefined : req.body,
-      redirect: "follow",
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+    let backendResponse: Response;
+    try {
+      backendResponse = await fetch(targetUrl, {
+        method: req.method,
+        headers: forwardHeaders,
+        body: req.method === "GET" || req.method === "HEAD" ? undefined : req.body,
+        redirect: "follow",
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     const responseHeaders = new Headers(backendResponse.headers);
     responseHeaders.set("Access-Control-Allow-Origin", "*");
@@ -67,6 +76,16 @@ serve(async (req) => {
       headers: responseHeaders,
     });
   } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      return new Response(
+        JSON.stringify({ error: "Backend request timed out" }),
+        {
+          status: 504,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
     return new Response(
       JSON.stringify({
         error: "Proxy request failed",
