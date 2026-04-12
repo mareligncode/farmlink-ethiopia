@@ -1,4 +1,41 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const LOCAL_API_BASE_URL = 'http://localhost:5000/api';
+const RENDER_API_BASE_URL = 'https://farmlink-ethiopia.onrender.com/api';
+
+const trimTrailingSlash = (url: string) => url.replace(/\/+$/, '');
+
+function resolveApiBaseUrl(): string {
+  const envApiUrl = import.meta.env.VITE_API_URL?.trim();
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
+  const proxyBaseUrl = supabaseUrl
+    ? `${trimTrailingSlash(supabaseUrl)}/functions/v1/backend-proxy`
+    : '';
+
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1';
+    const isLovableHost = hostname.endsWith('.lovable.app');
+
+    if (isLocalHost) {
+      return envApiUrl ? trimTrailingSlash(envApiUrl) : LOCAL_API_BASE_URL;
+    }
+
+    if (isLovableHost && proxyBaseUrl) {
+      return proxyBaseUrl;
+    }
+  }
+
+  if (envApiUrl && !/localhost|127\.0\.0\.1/.test(envApiUrl)) {
+    return trimTrailingSlash(envApiUrl);
+  }
+
+  if (proxyBaseUrl) {
+    return proxyBaseUrl;
+  }
+
+  return RENDER_API_BASE_URL;
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem('auth_token');
@@ -15,13 +52,22 @@ async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise
     headers,
   });
 
-  const data = await response.json();
+  const contentType = response.headers.get('content-type') || '';
+  const isJsonResponse = contentType.includes('application/json');
+  const data = isJsonResponse ? await response.json() : await response.text();
 
   if (!response.ok) {
-    throw new Error(data.error || 'API request failed');
+    const errorMessage =
+      typeof data === 'object' && data !== null && 'error' in data
+        ? String((data as { error: unknown }).error)
+        : typeof data === 'string' && data.trim().length > 0
+          ? data
+          : 'API request failed';
+
+    throw new Error(errorMessage);
   }
 
-  return data;
+  return data as T;
 }
 
 export function setAuthToken(token: string): void {

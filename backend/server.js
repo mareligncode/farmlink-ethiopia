@@ -15,14 +15,21 @@ const allowedOrigins = [
   'https://farmlink-ethiopia-advice-and-shopping.onrender.com',
   process.env.FRONTEND_URL,
   'capacitor://localhost',
-  'ionic://localhost'
+  'ionic://localhost',
+  'http://localhost:5173',
+  'http://localhost:8080',
+  /\.lovable\.app$/
 ].filter(Boolean);
 
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    const isAllowed = allowedOrigins.some(o =>
+      o instanceof RegExp ? o.test(origin) : o === origin
+    );
+
+    if (isAllowed) {
       callback(null, true);
     } else {
       console.log(`CORS blocked origin: ${origin}`);
